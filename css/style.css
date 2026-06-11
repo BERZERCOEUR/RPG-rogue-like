@@ -1,0 +1,143 @@
+/* DONJON INFINI — thème §13.1/§13.2 : sobre, dark, flat,
+   pas de dégradés ni d'ombres, bordures fines 0.5px, coins arrondis. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #111110;
+  color: #b8b4ac;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  font-size: 9px;
+  color: #4a4a46;
+  margin: 0 0 12px;
+}
+
+.panel {
+  width: min(92vw, 440px);
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel label {
+  font-size: 9px;
+  color: #4a4a46;
+}
+
+.panel input {
+  flex: 1;
+  min-width: 0;
+  background: #111110;
+  border: 0.5px solid #252522;
+  border-radius: 4px;
+  color: #b8b4ac;
+  font-size: 11px;
+  padding: 4px 6px;
+  outline: none;
+}
+
+.panel button {
+  background: #252522;
+  border: 0.5px solid #3a3935;
+  border-radius: 4px;
+  color: #b8b4ac;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.panel button:hover {
+  background: #3a3935;
+}
+
+.infos {
+  justify-content: space-between;
+}
+
+.infos span {
+  font-size: 11px;
+}
+
+.infos .label {
+  font-size: 9px;
+  color: #4a4a46;
+  margin-right: 4px;
+}
+
+#board {
+  width: min(92vw, 440px);
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* §13.2 — états visuels des cases */
+.cell.unplayable {
+  background: #1e1e1c;
+}
+
+.cell.unexplored {
+  background: #3a3935;
+}
+
+.cell.accessible {
+  background: #6b6960;
+  cursor: pointer;
+}
+
+.cell.explored {
+  background: #94918a;
+}
+
+/* Aventurier : point rond clair (§13.2) */
+.pawn {
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #c8c4bc;
+}
+
+.help {
+  width: min(92vw, 440px);
+  font-size: 9px;
+  color: #4a4a46;
+  margin-top: 8px;
+  line-height: 1.5;
+}

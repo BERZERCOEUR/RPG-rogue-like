@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Donjon Infini — M1</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <h1>Donjon Infini</h1>
+  <p class="subtitle">Jalon M1 — plateau, labyrinthe parfait, brouillard de guerre, déplacement</p>
+
+  <div class="panel">
+    <label for="seed-input">Seed</label>
+    <input id="seed-input" type="text" spellcheck="false" />
+    <button id="regen-btn">Nouvel étage</button>
+  </div>
+
+  <div class="panel infos">
+    <span><span class="label">Seed</span><span id="info-seed">—</span></span>
+    <span><span class="label">Tour</span><span id="info-tour">0</span></span>
+    <span><span class="label">Explorées</span><span id="info-explored">0 / 70</span></span>
+  </div>
+
+  <div id="board"></div>
+
+  <p class="help">
+    Déplacement : flèches du clavier, ou clic sur une case accessible (gris moyen).
+    Les murs sont invisibles : seules les salles reliées à votre position par un
+    passage du labyrinthe sont indiquées comme accessibles.
+  </p>
+
+  <script src="js/config.js"></script>
+  <script src="js/rng.js"></script>
+  <script src="js/generation.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
