@@ -208,6 +208,228 @@ h1 {
   cursor: default;
 }
 
+#board.frozen {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+#gameover {
+  width: min(92vw, 440px);
+  background: #1a1a18;
+  border: 0.5px solid #5a3432;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  color: #9a6a6a;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ——— Interface de combat (§13.5) : fond #111110, structure verticale ——— */
+#combat {
+  width: min(92vw, 440px);
+  min-height: 560px;
+  background: #111110;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 1. Barre ATB : curseurs nommés */
+.atb-track {
+  position: relative;
+  height: 30px;
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 4px;
+}
+
+.atb-cursor {
+  position: absolute;
+  top: 2px;
+  width: 2px;
+  height: 26px;
+  background: #c8c4bc;
+}
+
+.atb-cursor.monstre {
+  background: #9a6a6a;
+}
+
+.atb-cursor span {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 8px;
+  color: #b8b4ac;
+  white-space: nowrap;
+}
+
+.atb-cursor.label-left span {
+  left: auto;
+  right: 4px;
+}
+
+.atb-cursor.monstre span {
+  color: #9a6a6a;
+}
+
+/* 2–3. Grilles 2×2 de bulles (emplacements fixes) */
+.combat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bubble {
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  padding: 6px 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.bubble.monster {
+  height: 61px;
+}
+
+.bubble.adv {
+  height: 106px;
+}
+
+.bubble.empty {
+  align-items: center;
+  justify-content: center;
+  color: #4a4a46;
+  font-size: 11px;
+}
+
+.bubble.monster:not(.empty):not(.dead) {
+  cursor: pointer;
+}
+
+.bubble.targeted {
+  border-color: #c47c35;
+}
+
+.bubble.dead {
+  opacity: 0.35;
+}
+
+.bubble .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bubble .name {
+  font-size: 11px;
+  color: #b8b4ac;
+}
+
+.bubble .tag {
+  font-size: 8px;
+  color: #4a4a46;
+}
+
+.bubble .sub {
+  font-size: 8px;
+  color: #4a4a46;
+}
+
+/* Jauges : hauteur 14px, compteur centré */
+.gauge {
+  position: relative;
+  height: 14px;
+  background: #111110;
+  border: 0.5px solid #252522;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gauge .fill {
+  height: 100%;
+}
+
+.gauge.pv .fill { background: #8c4a42; }
+.gauge.mp .fill { background: #46627a; }
+.gauge.end .fill { background: #5a7a52; }
+
+.gauge .count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #b8b4ac;
+}
+
+/* 4. Boutons d'action 2×2 */
+.combat-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  color: #b8b4ac;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.action-btn .icon {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.action-btn.attack {
+  background: #8a5a28;
+  border-color: #a87832;
+  color: #f0e8da;
+}
+
+.action-btn.attack:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.action-btn.locked {
+  opacity: 0.22;
+  cursor: default;
+}
+
+/* 5. Journal : plus récent en bas, trois couleurs */
+.journal {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  background: #1a1a18;
+  border: 0.5px solid #252522;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.journal .entry.joueur { color: #7a9a6a; }
+.journal .entry.monstre { color: #9a6a6a; }
+.journal .entry.systeme { color: #4a6a7a; font-style: italic; }
+
 .help {
   width: min(92vw, 440px);
   font-size: 9px;

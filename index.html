@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Donjon Infini — M2</title>
+  <title>Donjon Infini — M3</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <h1>Donjon Infini</h1>
-  <p class="subtitle">Jalon M2 — étages, navigation, répartition des salles, respawn</p>
+  <p class="subtitle">Jalon M3 — moteur de combat ATB, formules §5, journal</p>
 
   <div class="panel">
     <label for="seed-input">Seed</label>
@@ -23,10 +23,17 @@
     <button id="utiliser-btn" disabled>Utiliser</button>
   </div>
 
+  <div class="panel infos">
+    <span><span class="label">Aventurier</span><span id="info-adv">—</span></span>
+  </div>
+
+  <div id="gameover" style="display:none">Fin de la run — le groupe est anéanti. Lancez une nouvelle partie.</div>
+
   <div id="board"></div>
+  <div id="combat" style="display:none"></div>
 
   <div class="panel debug-bar">
-    <label><input type="checkbox" id="debug-toggle" /> Debug (validation M2)</label>
+    <label><input type="checkbox" id="debug-toggle" /> Debug (validation)</label>
     <div id="debug-panel" style="display:none">
       <span id="debug-pool"></span>
       <button id="skip-btn">+50 tours</button>
@@ -36,18 +43,23 @@
   <p class="help">
     Déplacement : flèches du clavier, ou clic sur une case accessible (gris moyen).
     Cercle vert = ville · cercle orange = montée · cercle jaune = descente ·
-    triangle rouge = combat non vaincu (moteur de combat au jalon M3).
-    Le bouton Monter/Descendre s'active sur la case correspondante.
-    Respawn : une salle non traversée depuis 100 tours repasse en brouillard
-    et peut changer de type (debug : types M/V/T/P, « · » = non déterminé, +50 tours).
+    triangle rouge = combat non vaincu. Entrer sur une salle monstre déclenche
+    le combat : cliquez une bulle monstre pour changer de cible, « Attaque »
+    pendant votre tour. Compétences / Objets / Fuite arrivent aux jalons M5–M7.
   </p>
 
   <script src="js/config.js"></script>
   <script src="js/rng.js"></script>
+  <script src="js/data/races.js"></script>
+  <script src="js/formulas.js"></script>
   <script src="js/generation.js"></script>
   <script src="js/floor.js"></script>
+  <script src="js/adventurer.js"></script>
+  <script src="js/monsters.js"></script>
+  <script src="js/combat.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/combat-ui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

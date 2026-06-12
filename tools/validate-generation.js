@@ -26,6 +26,8 @@ const { neighborsOf, mazeDistances } = generation;
 // floor.js / game.js sont écrits pour le navigateur (globals) : on les expose.
 global.RNG = RNG;
 global.generateFloor = generation.generateFloor;
+Object.assign(global, require('../js/data/races.js'), require('../js/formulas.js'));
+Object.assign(global, require('../js/adventurer.js'));
 const { Floor, DYNAMIC_TYPES } = require('../js/floor.js');
 global.Floor = Floor;
 const { Game } = require('../js/game.js');

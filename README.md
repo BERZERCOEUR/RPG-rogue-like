@@ -13,15 +13,23 @@ Aucun build, aucune dépendance : ouvrir `index.html` dans un navigateur.
   aléatoire. Une même seed reproduit exactement le même étage (reproduction de bugs).
 - **Déplacement** : flèches du clavier, ou clic sur une case accessible.
 
-## Validation headless
+## Validation et simulations headless
 
 ```
-node tools/validate-generation.js [nombre_de_seeds]   # défaut : 1000
+node tools/validate-generation.js [nb_seeds] [nb_etages]
 ```
 
-Vérifie sur N seeds toutes les contraintes de génération du §3.1 (comptes 70/30,
-blocs injouables ≤ 5 et dispersés, connexité, labyrinthe = arbre couvrant de
-degré 1–3) et affiche des statistiques de distribution.
+Vérifie toutes les contraintes de génération §3.1–§3.4 (comptes 70/30, blocs
+injouables, connexité, labyrinthe, accès, pièges, quotas du pool, invariants
+de respawn par marche aléatoire) et affiche des statistiques de distribution.
+
+```
+node tools/simulate-combat.js combats=1000 etage=1 race=orc aventuriers=1 monstres=2 seed=sim
+```
+
+Simulateur de combats sans UI (§0.5) : taux de victoire, activations par
+combat, % de coups au but, critiques, dégâts moyens, PV restants. Tous les
+paramètres sont optionnels (`race=aleatoire`, `monstres=auto` → tirage §7.6).
 
 ## Architecture
 
@@ -44,8 +52,14 @@ degré 1–3) et affiche des statistiques de distribution.
   répartition des salles §3.2 par pool à quota fixe, mémorisation des étages,
   tours globaux, respawn 100 tours (§3.4), bouton « Utiliser » contextuel (§13.3),
   marqueurs §13.2, panneau debug de validation (types, pool, +50 tours).
-- [ ] M3 — Moteur de combat ATB
-- [ ] M4 → M11 …
+- [x] **M3 — Moteur de combat ATB** : 17 stats, formules révisées §5.3–5.5
+  (toucher borné 25–95%, critiques plafonnés 50%, résistances), ATB §5.6 avec
+  clamp de vitesse 2:1, attaque de base, ciblage par clic, journal persistant
+  3 couleurs, mort/victoire/fin de run, interface combat §13.5–13.6, création
+  d'aventurier par race (§6), monstres d'essai Offensif Physique scalés §7.4,
+  simulateur headless `tools/simulate-combat.js`.
+- [ ] M4 — Génération de monstres (7 orientations, raretés, hybrides, familles, IA)
+- [ ] M5 → M11 …
 
 ## Décisions prises en M1 (validé par Marc)
 
@@ -72,3 +86,37 @@ degré 1–3) et affiche des statistiques de distribution.
    seed dérivée `seed/etage/N/layout` — même carte quelle que soit la façon de
    jouer ; seuls les tirages dynamiques dépendent du parcours.
 6. **Bouton « Entrer »** sur la ville : affiché mais inactif jusqu'au jalon M5.
+
+## Décisions prises en M3 (à valider par Marc)
+
+1. **ATB en temps continu** : plutôt que la règle discrète « les autres
+   avancent de (VIT/VIT acteur)×100 » (qui fait déborder plusieurs jauges à
+   la fois sans règle de départage), les jauges avancent proportionnellement
+   à la Vitesse effective jusqu'à ce que la première atteigne 100. Résultat
+   identique dans le cas nominal, fréquences exactement proportionnelles aux
+   VIT (clampées 2:1 en plafonnant la VIT effective à 2× celle du plus lent).
+2. **Plancher de dégâts à 1** sur un coup qui touche (la spec ne définit pas
+   l'arrondi ; constante `MIN_DAMAGE`).
+3. **Monstres d'essai M3** : Communs, orientation Offensif Physique (§7.2),
+   règle 70/30 et scaling §7.4 conformes ; le **pool de PV suit le même
+   multiplicateur d'étage que les stats** (le §7.4 ne précise que les stats —
+   à confirmer). Distribution §7.6 : partie entière de la moyenne + 1 avec
+   probabilité fractionnaire (la « méthode du GDD d'origine » n'est pas dans
+   le doc — à préciser pour M4).
+4. **Niveau affiché « niv. 1 »** dans les bulles : placeholder en attendant la
+   décision §14.13 (progression par niveaux ou purement économique).
+5. **Cible des monstres** : aventurier vivant aléatoire (les scripts d'IA par
+   orientation arrivent en M4).
+
+### Premiers chiffres de balance (simulateur, étage 1, 1v1 vs Commun Off. Phys.)
+
+| Race | Taux de victoire |
+|---|---|
+| Orc | ~100% |
+| Humain | ~43% |
+| Elfe | ~4% |
+| Fée | ~0% |
+
+Le 100 pts étalé de l'Humain et les PV fixes bas Elfe/Fée pèsent lourd contre
+un profil physique concentré — chiffres à retravailler avec items/compétences
+et les autres orientations (M4–M7). Le simulateur est là pour ça.
