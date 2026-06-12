@@ -1,40 +1,76 @@
 /**
- * DONJON INFINI — Point d'entrée du jalon M1.
+ * DONJON INFINI — Point d'entrée (jalons M1–M2).
  * Saisie de seed + régénération pour la reproduction de bugs (§0.4).
+ * Panneau debug (outil de validation, hors design) : types de salles,
+ * pool de l'étage, avance rapide du temps pour observer le respawn.
  */
 (function () {
   const boardEl = document.getElementById('board');
   const seedInput = document.getElementById('seed-input');
   const regenBtn = document.getElementById('regen-btn');
-  const infoSeed = document.getElementById('info-seed');
+  const infoEtage = document.getElementById('info-etage');
   const infoTour = document.getElementById('info-tour');
   const infoExplored = document.getElementById('info-explored');
+  const utiliserBtn = document.getElementById('utiliser-btn');
+  const debugToggle = document.getElementById('debug-toggle');
+  const debugPanel = document.getElementById('debug-panel');
+  const debugPool = document.getElementById('debug-pool');
+  const skipBtn = document.getElementById('skip-btn');
 
-  let state = null;
+  let game = null;
   const ui = new BoardUI(boardEl, (idx) => {
-    if (state.moveTo(idx)) refresh();
+    if (game.moveTo(idx)) refresh();
   });
 
+  // Bouton « Utiliser » contextuel (§13.3)
+  const UTILISER_LABELS = { monter: 'Monter', descendre: 'Descendre', entrer: 'Entrer' };
+
   function refresh() {
-    ui.render(state);
-    infoSeed.textContent = state.seed;
-    infoTour.textContent = state.tour;
-    infoExplored.textContent = `${state.explored.size} / ${CONFIG.PLAYABLE_COUNT}`;
+    ui.render(game);
+    const floor = game.current();
+    infoEtage.textContent = game.etage;
+    infoTour.textContent = game.tour;
+    infoExplored.textContent = `${floor.exploredCount()} / ${CONFIG.PLAYABLE_COUNT}`;
+
+    const ctx = game.utiliserContext();
+    utiliserBtn.textContent = ctx ? UTILISER_LABELS[ctx] : 'Utiliser';
+    // « Entrer » (intérieur de la ville) arrive au jalon M5
+    utiliserBtn.disabled = !ctx || ctx === 'entrer';
+    utiliserBtn.title = ctx === 'entrer' ? 'Ville — jalon M5' : '';
+
+    debugPanel.style.display = ui.debug ? 'flex' : 'none';
+    if (ui.debug) {
+      const p = floor.pool;
+      debugPool.textContent = `Pool étage ${game.etage} — M:${p.monstre} V:${p.vide} T:${p.tresor}`;
+    }
   }
 
-  function newFloor(seed) {
-    state = new GameState(seed, CONFIG);
-    seedInput.value = state.seed;
+  function newGame(seed) {
+    game = new Game(seed, CONFIG);
+    seedInput.value = game.seed;
     ui.build(CONFIG);
     refresh();
   }
 
   regenBtn.addEventListener('click', () => {
-    const seed = seedInput.value.trim() || String(Date.now());
-    newFloor(seed);
+    newGame(seedInput.value.trim() || String(Date.now()));
   });
   seedInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') regenBtn.click();
+  });
+
+  utiliserBtn.addEventListener('click', () => {
+    if (game.utiliser()) refresh();
+  });
+
+  debugToggle.addEventListener('change', () => {
+    ui.debug = debugToggle.checked;
+    refresh();
+  });
+
+  skipBtn.addEventListener('click', () => {
+    game.advanceTours(50);
+    refresh();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -47,8 +83,12 @@
     const d = dirs[e.key];
     if (!d || document.activeElement === seedInput) return;
     e.preventDefault();
-    if (state.moveDir(d[0], d[1])) refresh();
+    if (game.moveDir(d[0], d[1])) refresh();
   });
 
-  newFloor(String(Date.now()));
+  newGame(String(Date.now()));
+
+  // Accès pour les tests automatisés (vérifications headless)
+  window.__game = () => game;
+  window.__refresh = refresh;
 })();

@@ -38,17 +38,37 @@ degré 1–3) et affiche des statistiques de distribution.
 
 - [x] **M1 — Plateau & génération** : grille 10×10, 30 cases injouables (blocs 1–5
   dispersés, max 3 voisins injouables), labyrinthe parfait DFS à murs invisibles
-  (degré 1–3), brouillard de guerre, déplacement, compteur de tours, seed.
-- [ ] M2 — Étages & navigation
+  (degré 1–3), brouillard de guerre, déplacement, compteur de tours, seed. ✔ validé
+- [x] **M2 — Étages & navigation** : cases orange (montée) / jaune (descente) à
+  coordonnée partagée, distance ≥ 5 salles entre accès, ville tous les 5 étages,
+  répartition des salles §3.2 par pool à quota fixe, mémorisation des étages,
+  tours globaux, respawn 100 tours (§3.4), bouton « Utiliser » contextuel (§13.3),
+  marqueurs §13.2, panneau debug de validation (types, pool, +50 tours).
 - [ ] M3 — Moteur de combat ATB
 - [ ] M4 → M11 …
 
-## Décisions prises en M1 (à valider par Marc)
+## Décisions prises en M1 (validé par Marc)
 
 1. **Stack** : HTML/JS vanilla sans framework ni build (recommandation §2 du doc,
-   continuité du prototype). À confirmer (§14.1).
+   continuité du prototype).
 2. **Priorité d'affichage des états de case** : une salle reliée à la position
    courante est affichée « accessible » (`#6b6960`) même si elle a déjà été
-   explorée — la lisibilité des murs invisibles prime. À confirmer.
-3. **Apparition M1** : l'aventurier apparaît sur une salle jouable aléatoire
-   (les cases d'accès orange/jaune et la ville arrivent en M2).
+   explorée — la lisibilité des murs invisibles prime.
+
+## Décisions prises en M2 (à valider par Marc)
+
+1. **Étage 0** : traité comme un étage ville (§3.2 colonne ×5) sans case jaune ;
+   la salle libérée devient une vide → 29 monstres / 31 vides / 3 trésors / 5
+   pièges / 1 orange / 1 ville. La distance min de 5 salles vers l'orange y est
+   mesurée depuis la ville (pas de jaune). Cf. §14.21.
+2. **Type des salles dynamiques tiré à la traversée** : une salle en brouillard
+   n'a pas de type déterminé ; il est tiré dans le pool restant de l'étage quand
+   le joueur y entre. Au respawn, la salle rend son type au pool — c'est ce qui
+   permet le « peut changer de type » du §3.4 tout en gardant le quota exact.
+3. **Monter/descendre un étage coûte 1 tour** (assimilé à un déplacement, §3.5).
+4. **Pièges au respawn** : position et type conservés (§3.3), mais la salle
+   repasse en brouillard (réarmement — effets au jalon M9).
+5. **Layout d'étage indépendant du parcours** : l'étage N est généré depuis la
+   seed dérivée `seed/etage/N/layout` — même carte quelle que soit la façon de
+   jouer ; seuls les tirages dynamiques dépendent du parcours.
+6. **Bouton « Entrer »** sur la ville : affiché mais inactif jusqu'au jalon M5.

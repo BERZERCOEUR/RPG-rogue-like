@@ -68,14 +68,17 @@ function drawGroupSizes(rng, cfg) {
 
 /**
  * Fait croître un bloc contigu de `size` cases injouables.
- * Le bloc ne touche jamais un autre bloc (garantit blocs ≤ 5) et aucune de
- * ses cases ne dépasse UNPLAYABLE_MAX_NEIGHBORS voisins injouables.
+ * Le bloc ne touche jamais un autre bloc (garantit blocs ≤ 5), aucune de
+ * ses cases ne dépasse UNPLAYABLE_MAX_NEIGHBORS voisins injouables, et il
+ * évite les cases de `forbidden` (cases devant rester jouables, ex. accès).
  * Retourne la liste des cases du bloc, ou null si impossible ici.
  */
-function tryGrowGroup(rng, cfg, unplayable, size) {
+function tryGrowGroup(rng, cfg, unplayable, size, forbidden) {
   const n = cfg.GRID_SIZE * cfg.GRID_SIZE;
   const isolatedFree = (c) =>
-    !unplayable[c] && neighborsOf(c, cfg.GRID_SIZE).every((m) => !unplayable[m]);
+    !unplayable[c] &&
+    !forbidden.has(c) &&
+    neighborsOf(c, cfg.GRID_SIZE).every((m) => !unplayable[m]);
 
   const starts = [];
   for (let i = 0; i < n; i++) if (isolatedFree(i)) starts.push(i);
@@ -106,13 +109,13 @@ function tryGrowGroup(rng, cfg, unplayable, size) {
 }
 
 /** Place tous les blocs injouables. Retourne le tableau bool[100], ou null. */
-function tryPlaceUnplayable(rng, cfg) {
+function tryPlaceUnplayable(rng, cfg, forbidden = new Set()) {
   const n = cfg.GRID_SIZE * cfg.GRID_SIZE;
   const unplayable = new Array(n).fill(false);
   for (const size of drawGroupSizes(rng, cfg)) {
     let placed = false;
     for (let t = 0; t < cfg.GROUP_PLACEMENT_TRIES && !placed; t++) {
-      const group = tryGrowGroup(rng, cfg, unplayable, size);
+      const group = tryGrowGroup(rng, cfg, unplayable, size, forbidden);
       if (!group) continue;
       for (const c of group) unplayable[c] = true;
       if (playableConnected(unplayable, cfg.GRID_SIZE)) {
@@ -163,18 +166,77 @@ function tryCarveMaze(rng, cfg, unplayable) {
   return visited.size === playable.length ? passages : null;
 }
 
+/** Distances (en salles parcourues) depuis `from` le long des passages du labyrinthe. */
+function mazeDistances(passages, from, n) {
+  const dist = new Array(n).fill(Infinity);
+  dist[from] = 0;
+  const queue = [from];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const m of passages[cur]) {
+      if (dist[m] === Infinity) {
+        dist[m] = dist[cur] + 1;
+        queue.push(m);
+      }
+    }
+  }
+  return dist;
+}
+
 /**
- * Génère un étage complet : { unplayable: bool[100], passages: int[][100] }.
+ * Place les salles fixes (§3.3) : accès jaune (imposé par l'étage précédent),
+ * accès orange (à ≥ ACCESS_MIN_PATH salles parcourues, §3.1), ville (étages ×5)
+ * et les 5 salles pièges. Retourne null si la contrainte de distance échoue.
+ */
+function tryPlaceFixedRooms(rng, cfg, unplayable, passages, entryCell, withVille) {
+  const n = cfg.GRID_SIZE * cfg.GRID_SIZE;
+  const playable = [];
+  for (let i = 0; i < n; i++) if (!unplayable[i]) playable.push(i);
+
+  const used = new Set();
+  const jaune = entryCell;
+  if (jaune !== null) used.add(jaune);
+
+  let ville = null;
+  if (withVille) {
+    ville = rng.pick(playable.filter((c) => !used.has(c)));
+    used.add(ville);
+  }
+
+  // Référence de distance : l'accès jaune, ou la ville à l'étage 0 (pas de jaune)
+  const ref = jaune !== null ? jaune : ville;
+  const dist = mazeDistances(passages, ref, n);
+  const orangeChoices = playable.filter((c) => !used.has(c) && dist[c] >= cfg.ACCESS_MIN_PATH);
+  if (!orangeChoices.length) return null;
+  const orange = rng.pick(orangeChoices);
+  used.add(orange);
+
+  const pieges = rng
+    .shuffle(playable.filter((c) => !used.has(c)))
+    .slice(0, cfg.PIEGES_PER_FLOOR);
+  return { jaune, orange, ville, pieges };
+}
+
+/**
+ * Génère un étage complet :
+ * { unplayable: bool[100], passages: int[][100], jaune, orange, ville, pieges }.
+ * opts.entryCell : case jaune imposée (= position de l'orange de l'étage
+ * précédent, §3.6), ou null pour l'étage 0. opts.withVille : étage ×5.
  * Retente tant qu'une contrainte n'est pas satisfaite (le rng avance, donc
  * chaque tentative diffère).
  */
-function generateFloor(rng, cfg) {
+function generateFloor(rng, cfg, opts = {}) {
+  const entryCell = opts.entryCell ?? null;
+  const withVille = !!opts.withVille;
+  const forbidden = new Set(entryCell === null ? [] : [entryCell]);
   for (let attempt = 1; attempt <= cfg.GENERATION_MAX_ATTEMPTS; attempt++) {
-    const unplayable = tryPlaceUnplayable(rng, cfg);
+    const unplayable = tryPlaceUnplayable(rng, cfg, forbidden);
     if (!unplayable) continue;
     const passages = tryCarveMaze(rng, cfg, unplayable);
     if (!passages) continue;
-    return { unplayable, passages };
+    const fixed = tryPlaceFixedRooms(rng, cfg, unplayable, passages, entryCell, withVille);
+    if (!fixed) continue;
+    return { unplayable, passages, ...fixed };
   }
   throw new Error(
     `Échec de génération d'étage après ${cfg.GENERATION_MAX_ATTEMPTS} tentatives (seed: ${rng.seed})`
@@ -189,6 +251,8 @@ if (typeof module !== 'undefined') {
     tryGrowGroup,
     tryPlaceUnplayable,
     tryCarveMaze,
+    mazeDistances,
+    tryPlaceFixedRooms,
     generateFloor,
   };
 }

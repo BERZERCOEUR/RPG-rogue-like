@@ -3,37 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Donjon Infini — M1</title>
+  <title>Donjon Infini — M2</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <h1>Donjon Infini</h1>
-  <p class="subtitle">Jalon M1 — plateau, labyrinthe parfait, brouillard de guerre, déplacement</p>
+  <p class="subtitle">Jalon M2 — étages, navigation, répartition des salles, respawn</p>
 
   <div class="panel">
     <label for="seed-input">Seed</label>
     <input id="seed-input" type="text" spellcheck="false" />
-    <button id="regen-btn">Nouvel étage</button>
+    <button id="regen-btn">Nouvelle partie</button>
   </div>
 
   <div class="panel infos">
-    <span><span class="label">Seed</span><span id="info-seed">—</span></span>
+    <span><span class="label">Étage</span><span id="info-etage">0</span></span>
     <span><span class="label">Tour</span><span id="info-tour">0</span></span>
     <span><span class="label">Explorées</span><span id="info-explored">0 / 70</span></span>
+    <button id="utiliser-btn" disabled>Utiliser</button>
   </div>
 
   <div id="board"></div>
 
+  <div class="panel debug-bar">
+    <label><input type="checkbox" id="debug-toggle" /> Debug (validation M2)</label>
+    <div id="debug-panel" style="display:none">
+      <span id="debug-pool"></span>
+      <button id="skip-btn">+50 tours</button>
+    </div>
+  </div>
+
   <p class="help">
     Déplacement : flèches du clavier, ou clic sur une case accessible (gris moyen).
-    Les murs sont invisibles : seules les salles reliées à votre position par un
-    passage du labyrinthe sont indiquées comme accessibles.
+    Cercle vert = ville · cercle orange = montée · cercle jaune = descente ·
+    triangle rouge = combat non vaincu (moteur de combat au jalon M3).
+    Le bouton Monter/Descendre s'active sur la case correspondante.
+    Respawn : une salle non traversée depuis 100 tours repasse en brouillard
+    et peut changer de type (debug : types M/V/T/P, « · » = non déterminé, +50 tours).
   </p>
 
   <script src="js/config.js"></script>
   <script src="js/rng.js"></script>
   <script src="js/generation.js"></script>
-  <script src="js/state.js"></script>
+  <script src="js/floor.js"></script>
+  <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>
