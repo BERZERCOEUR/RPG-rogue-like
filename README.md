@@ -87,7 +87,28 @@ paramètres sont optionnels (`race=aleatoire`, `monstres=auto` → tirage §7.6)
    jouer ; seuls les tirages dynamiques dépendent du parcours.
 6. **Bouton « Entrer »** sur la ville : affiché mais inactif jusqu'au jalon M5.
 
-## Refonte de l'interface de combat (décision Marc, juillet 2026)
+## Décor de combat 1ère personne (décision Marc, juillet 2026 — remplace la refonte Pokémon)
+
+Les personnages (aventurier/monstres) et l'interface de combat sont retirés :
+le travail porte d'abord sur **l'arrière-plan**, qui servira de base ensuite.
+
+- `js/scene-fp.js` — `svgDungeonRoom(seed)` : salle de donjon vue à la
+  première personne, perspective à un point de fuite. Pierres taillées
+  empilées en assises (appareillage décalé, arêtes éclairées, écornures,
+  grain), mur du fond avec arche sombre, sol dallé convergent (fissures,
+  éboulis avec ombres portées, mousse), plafond de dalles. Jeux d'ombres et
+  de lumières : pénombre générale, deux torches murales (halo chaud,
+  flaques de lumière au sol), rai froid tombant du plafond, lueur bleutée
+  dans l'arche, coulures d'humidité, vignettage. 100% SVG généré par RNG
+  seedé (`mix-blend-mode` screen/multiply pour la lumière).
+- `decor.html` — visionneuse plein écran : seed + « R » pour des variations.
+- Dans le jeu : entrer sur une salle monstre affiche ce décor (seed dérivée
+  de l'étage et de la salle → chaque salle a sa variation) ; **TEMPORAIRE :**
+  cliquer le décor ressort et marque la salle vaincue, en attendant la
+  réintégration des combats par-dessus. Le moteur de combat §5 et le
+  simulateur headless restent intacts.
+
+## Ancienne refonte Pokémon (remplacée)
 
 L'interface de combat n'applique **plus** la structure en bulles du §13.5 du
 GDD : Marc a demandé une composition **façon Pokémon simplifiée** (référence :

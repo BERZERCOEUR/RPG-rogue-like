@@ -27,8 +27,6 @@
     if (!inCombat && game.moveTo(idx)) afterMove();
   });
 
-  const combatUI = new CombatUI(combatEl, null, () => {});
-
   const UTILISER_LABELS = { monter: 'Monter', descendre: 'Descendre', entrer: 'Entrer' };
 
   function refresh() {
@@ -55,26 +53,33 @@
     }
   }
 
-  /** Après chaque déplacement : déclenchement auto du combat (§13.6). */
+  /**
+   * Après chaque déplacement : une salle monstre affiche pour l'instant le
+   * décor 1ère personne seul (les personnages et l'interface de combat
+   * seront réintégrés par-dessus plus tard — décision Marc, juillet 2026).
+   * TEMPORAIRE : cliquer le décor referme la salle et la marque vaincue.
+   */
   function afterMove() {
     refresh();
     if (game.combatPending()) {
       inCombat = true;
-      boardEl.style.display = 'none'; // le combat recouvre le plateau (§13.5)
-      const monstres = generateMonsterGroup(game.current().rng, CONFIG, game.etage);
-      combatUI.game = game;
-      combatUI.onEnd = () => {
-        inCombat = false;
-        boardEl.style.display = '';
-        refresh();
-      };
-      combatUI.start(monstres);
+      boardEl.style.display = 'none';
+      combatEl.innerHTML = svgDungeonRoom(`${game.seed}/etage/${game.etage}/salle/${game.pos}`);
+      combatEl.style.display = 'block';
     }
   }
 
+  combatEl.addEventListener('click', () => {
+    if (!inCombat) return;
+    game.winCombat();
+    inCombat = false;
+    combatEl.style.display = 'none';
+    boardEl.style.display = '';
+    refresh();
+  });
+
   function newGame(seed) {
     game = new Game(seed, CONFIG);
-    combatUI.game = game;
     seedInput.value = game.seed;
     ui.build(CONFIG);
     refresh();

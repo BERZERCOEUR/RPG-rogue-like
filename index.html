@@ -8,7 +8,7 @@
 </head>
 <body>
   <h1>Donjon Infini</h1>
-  <p class="subtitle">Jalon M3 — moteur de combat ATB, formules §5, journal</p>
+  <p class="subtitle">Décor 1ère personne (les salles monstres l'affichent — combats réintégrés ensuite)</p>
 
   <div class="panel">
     <label for="seed-input">Seed</label>
@@ -43,9 +43,10 @@
   <p class="help">
     Déplacement : flèches du clavier, ou clic sur une case accessible (gris moyen).
     Cercle vert = ville · cercle orange = montée · cercle jaune = descente ·
-    triangle rouge = combat non vaincu. Entrer sur une salle monstre déclenche
-    le combat : cliquez une bulle monstre pour changer de cible, « Attaque »
-    pendant votre tour. Compétences / Objets / Fuite arrivent aux jalons M5–M7.
+    triangle rouge = salle monstre. Entrer sur une salle monstre affiche le
+    décor de donjon à la 1ère personne (cliquer dessus pour ressortir —
+    personnages et interface de combat seront réintégrés par-dessus).
+    La page <code>decor.html</code> permet d'itérer sur le décor en plein écran.
   </p>
 
   <script src="js/config.js"></script>
@@ -59,7 +60,7 @@
   <script src="js/combat.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/combat-ui.js"></script>
+  <script src="js/scene-fp.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

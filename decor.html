@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Donjon Infini — Décor 1ère personne</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #0c0b09;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    #stage, #stage svg { width: 100vw; height: 100vh; display: block; }
+    #hud {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: rgba(16, 15, 12, 0.82);
+      border: 0.5px solid #3a3935;
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: #b8b4ac;
+      font-size: 11px;
+    }
+    #hud input {
+      width: 130px;
+      background: #111110;
+      border: 0.5px solid #3a3935;
+      border-radius: 4px;
+      color: #b8b4ac;
+      font-size: 11px;
+      padding: 3px 6px;
+      outline: none;
+    }
+    #hud button {
+      background: #252522;
+      border: 0.5px solid #3a3935;
+      border-radius: 4px;
+      color: #b8b4ac;
+      font-size: 11px;
+      padding: 3px 10px;
+      cursor: pointer;
+    }
+    #hud .hint { color: #6b6960; font-size: 9px; }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="hud">
+    <label for="seed">Seed</label>
+    <input id="seed" type="text" spellcheck="false" value="salle-1" />
+    <button id="regen">Régénérer</button>
+    <span class="hint">R = variation aléatoire</span>
+  </div>
+  <script src="js/rng.js"></script>
+  <script src="js/scene-fp.js"></script>
+  <script>
+    const stage = document.getElementById('stage');
+    const seedInput = document.getElementById('seed');
+    let n = 1;
+    function render(seed) {
+      seedInput.value = seed;
+      stage.innerHTML = svgDungeonRoom(seed);
+    }
+    document.getElementById('regen').addEventListener('click', () => render(seedInput.value.trim() || 'salle-1'));
+    seedInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(seedInput.value.trim()); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'r' && document.activeElement !== seedInput) render(`salle-${++n}`);
+    });
+    render('salle-1');
+  </script>
+</body>
+</html>
