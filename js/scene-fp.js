@@ -1,15 +1,17 @@
 /**
  * DONJON INFINI — Salle de donjon vue à la PREMIÈRE PERSONNE (SVG généré).
- * Décor destiné à servir d'arrière-plan (combats, exploration) — demandé par
- * Marc en remplacement de la scène type Pokémon : pierres taillées empilées
- * en perspective (point de fuite central), sol dallé, jeux d'ombres et de
- * lumières (torches, halo, vignettage, suintements, mousse, éboulis).
+ * Décor destiné à servir d'arrière-plan (combats, exploration).
+ *
+ * Aspect « naturel » demandé par Marc : pierres de tailles différentes
+ * (hauteurs d'assises variables, blocs fusionnés), joints ondulés (chaque
+ * assise « travaille »), coins déplacés, arêtes courbes, et un relief par
+ * pierre — certaines bombées (bosse claire au centre, ombre sous l'arête
+ * basse), d'autres creuses (creux sombre au centre, filet de lumière sur
+ * l'arête basse). Pièce large, mur du fond plein (pas d'ouverture).
  *
  * Tout est généré par un RNG seedé : même seed → même salle. Léger, aucun
  * asset externe. Les constantes de composition sont regroupées en tête.
  */
-
-/* eslint-disable prefer-template */
 function svgDungeonRoom(seed) {
   const rng = new RNG(`fp/${seed}`);
 
@@ -24,7 +26,6 @@ function svgDungeonRoom(seed) {
 
   const lerp = (a, b, t) => a + (b - a) * t;
   const persp = (t) => t / (t + PERSP * (1 - t));
-  const P = (x, y) => `${x.toFixed(1)},${y.toFixed(1)}`;
 
   // Parois : u = profondeur (0 proche → 1 fond), v = hauteur (0 haut → 1 bas)
   const wallX = (side, u) => (side < 0 ? lerp(0, FX0, u) : lerp(W, FX1, u));
@@ -33,6 +34,7 @@ function svgDungeonRoom(seed) {
   const floorX = (u, c) => lerp(lerp(0, FX0, u), lerp(W, FX1, u), c);
   const ceilY = (u) => lerp(0, FY0, u);
 
+  const P = (x, y) => `${x.toFixed(1)},${y.toFixed(1)}`;
   const quad = (pts, fill, extra = '') =>
     `<polygon points="${pts.map((q) => P(q[0], q[1])).join(' ')}" fill="${fill}" ${extra}/>`;
   const inset = (pts, d) => {
@@ -47,27 +49,47 @@ function svgDungeonRoom(seed) {
     });
   };
 
+  /** Contour de pierre : quadrilatère aux arêtes bombées/creusées (courbes). */
+  const stonePath = (cs, bow) => {
+    let d = `M${P(cs[0][0], cs[0][1])}`;
+    for (let i = 0; i < 4; i++) {
+      const A = cs[i];
+      const B = cs[(i + 1) % 4];
+      const mx = (A[0] + B[0]) / 2;
+      const my = (A[1] + B[1]) / 2;
+      let nx = -(B[1] - A[1]);
+      let ny = B[0] - A[0];
+      const l = Math.hypot(nx, ny) || 1;
+      nx /= l;
+      ny /= l;
+      const k = (rng.next() * 2 - 1) * bow;
+      d += `Q${P(mx + nx * k, my + ny * k)} ${P(B[0], B[1])}`;
+    }
+    return d + 'Z';
+  };
+
   // ——— Palettes ———
   const wallTones = ['#847f70', '#8d887a', '#7a7566', '#928d7e', '#807b6c'];
   const wallMossT = ['#7d8266', '#747c5e'];
   const ceilTones = ['#5a564c', '#615d52', '#534f46'];
   const floorTones = ['#736f5c', '#7b7764', '#6a6654', '#807c69'];
   const JOINT = '#332f27';
+  const MORTAR = '#26231c';
 
   const p = [];
 
-  // ═══ Définitions (lumières) ═══
+  // ═══ Définitions (lumières, relief, textures) ═══
   p.push(
     `<defs>` +
       `<radialGradient id="glow"><stop offset="0" stop-color="rgba(255,205,110,0.85)"/>` +
       `<stop offset="0.35" stop-color="rgba(255,175,72,0.38)"/>` +
       `<stop offset="1" stop-color="rgba(255,150,50,0)"/></radialGradient>` +
-      `<filter id="blotch" x="0" y="0" width="100%" height="100%">` +
-      `<feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" stitchTiles="stitch"/>` +
-      `<feColorMatrix type="saturate" values="0"/></filter>` +
-      `<filter id="grain" x="0" y="0" width="100%" height="100%">` +
-      `<feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="3" stitchTiles="stitch"/>` +
-      `<feColorMatrix type="saturate" values="0"/></filter>` +
+      `<radialGradient id="bump"><stop offset="0" stop-color="rgba(255,246,222,0.20)"/>` +
+      `<stop offset="0.6" stop-color="rgba(255,246,222,0.06)"/>` +
+      `<stop offset="1" stop-color="rgba(255,246,222,0)"/></radialGradient>` +
+      `<radialGradient id="dent"><stop offset="0" stop-color="rgba(8,6,3,0.26)"/>` +
+      `<stop offset="0.65" stop-color="rgba(8,6,3,0.09)"/>` +
+      `<stop offset="1" stop-color="rgba(8,6,3,0)"/></radialGradient>` +
       `<radialGradient id="vign" cx="0.5" cy="0.52" r="0.74">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="0.6" stop-color="rgba(0,0,0,0.06)"/>` +
       `<stop offset="1" stop-color="rgba(0,0,0,0.74)"/></radialGradient>` +
@@ -81,184 +103,183 @@ function svgDungeonRoom(seed) {
       `<linearGradient id="rsh" x1="1" y1="0" x2="0" y2="0">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0.5)"/><stop offset="0.5" stop-color="rgba(0,0,0,0.08)"/>` +
       `<stop offset="1" stop-color="rgba(0,0,0,0.18)"/></linearGradient>` +
+      `<filter id="blotch" x="0" y="0" width="100%" height="100%">` +
+      `<feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" stitchTiles="stitch"/>` +
+      `<feColorMatrix type="saturate" values="0"/></filter>` +
+      `<filter id="grain" x="0" y="0" width="100%" height="100%">` +
+      `<feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="3" stitchTiles="stitch"/>` +
+      `<feColorMatrix type="saturate" values="0"/></filter>` +
       `</defs>`
   );
 
   p.push(`<rect width="${W}" height="${H}" fill="#141310"/>`);
 
-  // ═══ Plafond : dalles sombres convergentes ═══
-  p.push(quad([[0, 0], [W, 0], [FX1, FY0], [FX0, FY0]], '#4c483e'));
-  {
-    const NZ = 5;
-    const COLS = 6;
-    const st = [];
-    for (let k = 0; k <= NZ; k++) st.push(persp(k / NZ));
-    for (let k = 0; k < NZ; k++) {
-      const off = (k % 2) * 0.5;
-      const edges = [0];
-      for (let i = 1; i <= COLS; i++) {
-        const t = (i - off) / COLS;
-        if (t > 0.03 && t < 0.97) edges.push(t);
-      }
-      edges.push(1);
-      for (let i = 0; i < edges.length - 1; i++) {
-        const pts = [
-          [floorX(st[k], edges[i]), ceilY(st[k])],
-          [floorX(st[k], edges[i + 1]), ceilY(st[k])],
-          [floorX(st[k + 1], edges[i + 1]), ceilY(st[k + 1])],
-          [floorX(st[k + 1], edges[i]), ceilY(st[k + 1])],
-        ];
-        p.push(quad(inset(pts, 1.6), rng.pick(ceilTones), `stroke="${JOINT}" stroke-width="1"`));
-      }
-    }
-  }
+  /**
+   * Maçonnerie naturelle générique.
+   * o.mapPt(a, b) → point écran ; b = travers des assises (0..1), a = le
+   * long des assises (0..1). o.fade(a, b) ∈ [0..1] atténue jitter/relief
+   * avec la profondeur. Assises de hauteurs variables, blocs fusionnés,
+   * joints qui ondulent (sinusoïde par assise), coins déplacés, arêtes
+   * courbes, pierre bombée / creuse / plate.
+   */
+  function masonry(o) {
+    const R = o.rows;
+    const hs = Array.from({ length: R }, () => 0.65 + rng.next() * 0.75);
+    const tot = hs.reduce((s, x) => s + x, 0);
+    const vb = [0];
+    for (const h of hs) vb.push(vb[vb.length - 1] + h / tot);
+    const sag = vb.map((_, j) => ({
+      amp: j === 0 || j === R ? 0 : 1.2 + rng.next() * 3.4,
+      freq: (2 + rng.next() * 3.5) * Math.PI * 2,
+      phase: rng.next() * Math.PI * 2,
+    }));
 
-  // ═══ Murs latéraux : assises de pierres taillées, appareillage décalé ═══
-  function sideWall(side) {
-    const COURSES = 9;
-    const NZ = 9;
-    for (let j = 0; j < COURSES; j++) {
-      const v0 = j / COURSES;
-      const v1 = (j + 1) / COURSES;
+    // fond de mortier de la surface
+    p.push(quad([o.mapPt(0, 0), o.mapPt(1, 0), o.mapPt(1, 1), o.mapPt(0, 1)], MORTAR));
+
+    for (let j = 0; j < R; j++) {
       const off = (j % 2) * 0.5;
       const edges = [0];
-      for (let k = 1; k <= NZ; k++) {
-        const t = (k - off) / NZ;
-        if (t > 0.02 && t < 0.98) edges.push(persp(t));
+      for (let k = 1; k <= o.cols; k++) {
+        const t = (k - off) / o.cols;
+        if (t > 0.04 && t < 0.96) edges.push(t + (rng.next() - 0.5) * (0.45 / o.cols));
       }
       edges.push(1);
+      for (let k = 1; k < edges.length - 1; k++) {
+        if (rng.next() < 0.13) edges.splice(k, 1); // fusion → grosses pierres
+      }
+
       for (let k = 0; k < edges.length - 1; k++) {
-        const u0 = edges[k];
-        const u1 = edges[k + 1];
-        const mossy = j >= COURSES - 2 && rng.next() < 0.2;
-        const tone = mossy ? rng.pick(wallMossT) : rng.pick(wallTones);
-        const pts = [
-          [wallX(side, u0), wallY(u0, v0)],
-          [wallX(side, u1), wallY(u1, v0)],
-          [wallX(side, u1), wallY(u1, v1)],
-          [wallX(side, u0), wallY(u0, v1)],
-        ];
-        p.push(quad(inset(pts, 1.7), tone, `stroke="${JOINT}" stroke-width="1.1"`));
-        // relief : arête supérieure éclairée, arête inférieure dans l'ombre
+        const a0 = edges[k];
+        const a1 = edges[k + 1];
+        const fade = o.fade((a0 + a1) / 2, (vb[j] + vb[j + 1]) / 2);
+        const corner = (a, jj) => {
+          const [x, y] = o.mapPt(a, vb[jj]);
+          const jit = o.jitter * fade;
+          return [
+            x + (rng.next() - 0.5) * jit,
+            y +
+              sag[jj].amp * Math.sin(sag[jj].freq * a + sag[jj].phase) * fade +
+              (rng.next() - 0.5) * jit,
+          ];
+        };
+        const cs = [corner(a0, j), corner(a1, j), corner(a1, j + 1), corner(a0, j + 1)];
+        const ins = inset(cs, o.mortar * fade + 0.5);
+        const mossy = o.mossProb && rng.next() < o.mossProb(vb[j]);
+        const tone = mossy ? rng.pick(wallMossT) : rng.pick(o.tones);
         p.push(
-          `<line x1="${pts[0][0].toFixed(1)}" y1="${(pts[0][1] + 2).toFixed(1)}" x2="${pts[1][0].toFixed(1)}" y2="${(pts[1][1] + 2).toFixed(1)}" stroke="rgba(255,244,220,0.12)" stroke-width="1.6"/>`
+          `<path d="${stonePath(ins, o.bow * fade)}" fill="${tone}" stroke="${JOINT}" stroke-width="${(o.strokeW * (0.5 + 0.5 * fade)).toFixed(1)}"/>`
         );
-        p.push(
-          `<line x1="${pts[3][0].toFixed(1)}" y1="${(pts[3][1] - 1.8).toFixed(1)}" x2="${pts[2][0].toFixed(1)}" y2="${(pts[2][1] - 1.8).toFixed(1)}" stroke="rgba(0,0,0,0.24)" stroke-width="1.8"/>`
-        );
-        // marbrures et grain de la pierre
-        const bw = Math.abs(pts[1][0] - pts[0][0]);
-        const bhh = Math.abs(pts[3][1] - pts[0][1]);
-        for (let m = 0; m < 2; m++) {
-          if (rng.next() < 0.65) {
-            const mx = lerp(pts[0][0], pts[1][0], 0.2 + rng.next() * 0.6);
-            const my = lerp(pts[0][1], pts[3][1], 0.25 + rng.next() * 0.5);
-            const dark = rng.next() < 0.6;
+
+        // ——— relief : bombée / creuse / plate ———
+        const cx = ins.reduce((s, q) => s + q[0], 0) / 4;
+        const cy = ins.reduce((s, q) => s + q[1], 0) / 4;
+        const bw = (Math.abs(ins[1][0] - ins[0][0]) + Math.abs(ins[2][0] - ins[3][0])) / 2 || 6;
+        const bh = (Math.abs(ins[3][1] - ins[0][1]) + Math.abs(ins[2][1] - ins[1][1])) / 2 || 6;
+        const rot = `rotate(${rng.int(-14, 14)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
+        const roll = rng.next();
+        if (o.relief !== false) {
+          if (roll < 0.4) {
+            // bombée : bosse claire décentrée vers le haut + ombre sous l'arête basse
             p.push(
-              `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${(bw * (0.14 + rng.next() * 0.2)).toFixed(1)}" ry="${(bhh * (0.1 + rng.next() * 0.16)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.10)' : 'rgba(255,248,230,0.06)'}" transform="rotate(${rng.int(-30, 30)} ${mx.toFixed(1)} ${my.toFixed(1)})"/>`
+              `<ellipse cx="${cx.toFixed(1)}" cy="${(cy - bh * 0.08).toFixed(1)}" rx="${(bw * 0.46).toFixed(1)}" ry="${(bh * 0.46).toFixed(1)}" fill="url(#bump)" transform="${rot}"/>`
+            );
+            p.push(
+              `<line x1="${ins[3][0].toFixed(1)}" y1="${(ins[3][1] - 1).toFixed(1)}" x2="${ins[2][0].toFixed(1)}" y2="${(ins[2][1] - 1).toFixed(1)}" stroke="rgba(0,0,0,0.28)" stroke-width="${(2.2 * fade).toFixed(1)}"/>`
+            );
+          } else if (roll < 0.66) {
+            // creuse : creux sombre + filet de lumière sur l'arête basse
+            p.push(
+              `<ellipse cx="${cx.toFixed(1)}" cy="${(cy + bh * 0.06).toFixed(1)}" rx="${(bw * 0.44).toFixed(1)}" ry="${(bh * 0.42).toFixed(1)}" fill="url(#dent)" transform="${rot}"/>`
+            );
+            p.push(
+              `<line x1="${ins[3][0].toFixed(1)}" y1="${(ins[3][1] - 1).toFixed(1)}" x2="${ins[2][0].toFixed(1)}" y2="${(ins[2][1] - 1).toFixed(1)}" stroke="rgba(255,244,218,0.11)" stroke-width="${(1.7 * fade).toFixed(1)}"/>`
+            );
+          } else {
+            // plate : simple arête haute qui accroche la lumière
+            p.push(
+              `<line x1="${ins[0][0].toFixed(1)}" y1="${(ins[0][1] + 1.5).toFixed(1)}" x2="${ins[1][0].toFixed(1)}" y2="${(ins[1][1] + 1.5).toFixed(1)}" stroke="rgba(255,244,220,0.11)" stroke-width="${(1.5 * fade).toFixed(1)}"/>`
             );
           }
         }
-        if (rng.next() < 0.6) {
-          const gx = lerp(pts[0][0], pts[1][0], 0.15 + rng.next() * 0.7);
-          const gy = lerp(pts[0][1], pts[3][1], 0.2 + rng.next() * 0.6);
-          p.push(`<circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="${(0.7 + rng.next()).toFixed(1)}" fill="rgba(0,0,0,0.16)"/>`);
-        }
-        // écornures
-        if (rng.next() < 0.16) {
-          const ex = lerp(pts[0][0], pts[1][0], 0.2 + rng.next() * 0.6);
-          const ey = lerp(pts[0][1], pts[3][1], 0.25 + rng.next() * 0.5);
+        // marbrure, grain, écornure
+        if (rng.next() < 0.45) {
+          const dark = rng.next() < 0.6;
           p.push(
-            `<path d="M${ex.toFixed(1)} ${ey.toFixed(1)} l${(rng.next() * 8 - 4).toFixed(1)} ${(rng.next() * 5 + 2).toFixed(1)} l${(rng.next() * 6 - 3).toFixed(1)} ${(rng.next() * 4 - 2).toFixed(1)}" stroke="#4e493c" stroke-width="1.1" fill="none" opacity="0.75"/>`
+            `<ellipse cx="${(cx + (rng.next() - 0.5) * bw * 0.5).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.5).toFixed(1)}" rx="${(bw * (0.12 + rng.next() * 0.16)).toFixed(1)}" ry="${(bh * (0.1 + rng.next() * 0.14)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.11)' : 'rgba(255,248,230,0.06)'}" transform="${rot}"/>`
           );
         }
-      }
-    }
-  }
-  sideWall(-1);
-  sideWall(1);
-
-  // ═══ Mur du fond : petites assises + arche sombre ═══
-  {
-    p.push(quad([[FX0, FY0], [FX1, FY0], [FX1, FY1], [FX0, FY1]], '#6e6a5c'));
-    const bh = 26;
-    let rowi = 0;
-    for (let y = FY0; y < FY1; y += bh, rowi++) {
-      let x = FX0 - (rowi % 2 ? 18 : 0);
-      while (x < FX1) {
-        const w = rng.int(24, 44);
-        const x0 = Math.max(FX0, x);
-        const x1 = Math.min(FX1, x + w);
-        const y1 = Math.min(FY1, y + bh);
-        if (x1 - x0 > 5) {
-          const tone = rng.next() < 0.12 ? rng.pick(wallMossT) : rng.pick(wallTones);
-          p.push(quad(inset([[x0, y], [x1, y], [x1, y1], [x0, y1]], 1.3), tone, `stroke="${JOINT}" stroke-width="0.9"`));
-          // relief + marbrure (mur plein, pas d'ouverture — demande Marc)
-          p.push(`<line x1="${x0 + 2}" y1="${y + 2}" x2="${x1 - 2}" y2="${y + 2}" stroke="rgba(255,244,220,0.10)" stroke-width="1.2"/>`);
-          if (rng.next() < 0.55) {
-            const mx = lerp(x0, x1, 0.25 + rng.next() * 0.5);
-            const my = lerp(y, y1, 0.3 + rng.next() * 0.4);
-            const dark = rng.next() < 0.6;
-            p.push(
-              `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${((x1 - x0) * (0.16 + rng.next() * 0.18)).toFixed(1)}" ry="${(bh * (0.12 + rng.next() * 0.14)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.10)' : 'rgba(255,248,230,0.06)'}" transform="rotate(${rng.int(-25, 25)} ${mx.toFixed(1)} ${my.toFixed(1)})"/>`
-            );
-          }
-        }
-        x += w;
-      }
-    }
-  }
-
-  // ═══ Sol : dallage convergent vers le point de fuite ═══
-  {
-    p.push(quad([[0, H], [W, H], [FX1, FY1], [FX0, FY1]], '#37342b'));
-    const NZ = 10;
-    const COLS = 8;
-    const st = [];
-    for (let k = 0; k <= NZ; k++) st.push(persp(k / NZ));
-    for (let k = 0; k < NZ; k++) {
-      const off = (k % 2) * 0.5;
-      const edges = [0];
-      for (let i = 1; i <= COLS; i++) {
-        const t = (i - off) / COLS;
-        if (t > 0.02 && t < 0.98) edges.push(t);
-      }
-      edges.push(1);
-      for (let i = 0; i < edges.length - 1; i++) {
-        const pts = [
-          [floorX(st[k + 1], edges[i]), floorY(st[k + 1])],
-          [floorX(st[k + 1], edges[i + 1]), floorY(st[k + 1])],
-          [floorX(st[k], edges[i + 1]), floorY(st[k])],
-          [floorX(st[k], edges[i]), floorY(st[k])],
-        ];
-        const d = 2.4 - 1.6 * st[k];
-        p.push(quad(inset(pts, d), rng.pick(floorTones), `stroke="${JOINT}" stroke-width="${(1.4 - 0.7 * st[k]).toFixed(1)}"`));
-        // usure des dalles : marbrures translucides
         if (rng.next() < 0.5) {
-          const mx = lerp(pts[3][0], pts[2][0], 0.25 + rng.next() * 0.5);
-          const my = lerp(pts[3][1], pts[0][1], 0.25 + rng.next() * 0.5);
-          const dw = Math.abs(pts[2][0] - pts[3][0]);
-          const dark = rng.next() < 0.55;
           p.push(
-            `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${(dw * (0.15 + rng.next() * 0.2)).toFixed(1)}" ry="${(dw * (0.05 + rng.next() * 0.07)).toFixed(1)}" fill="${dark ? 'rgba(28,24,16,0.11)' : 'rgba(255,248,230,0.06)'}"/>`
+            `<circle cx="${(cx + (rng.next() - 0.5) * bw * 0.7).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.7).toFixed(1)}" r="${(0.7 + rng.next()).toFixed(1)}" fill="rgba(0,0,0,0.16)"/>`
           );
         }
-        // fissures de dalles
-        if (rng.next() < 0.1 && st[k] < 0.75) {
-          const fx = lerp(pts[3][0], pts[2][0], 0.25 + rng.next() * 0.5);
-          const fy = lerp(pts[3][1], pts[0][1], 0.2 + rng.next() * 0.3);
-          const s = 1 - st[k] * 0.6;
+        if (rng.next() < 0.12) {
           p.push(
-            `<path d="M${fx.toFixed(1)} ${fy.toFixed(1)} l${(8 * s).toFixed(1)} ${(9 * s).toFixed(1)} l${(-4 * s).toFixed(1)} ${(8 * s).toFixed(1)} l${(9 * s).toFixed(1)} ${(10 * s).toFixed(1)}" stroke="#2c2921" stroke-width="${(1.6 * s).toFixed(1)}" fill="none" opacity="0.8"/>`
+            `<path d="M${(cx - bw * 0.2).toFixed(1)} ${(cy - bh * 0.1).toFixed(1)} l${(rng.next() * 8 - 4).toFixed(1)} ${(rng.next() * 5 + 2).toFixed(1)} l${(rng.next() * 6 - 3).toFixed(1)} ${(rng.next() * 4 - 2).toFixed(1)}" stroke="#4e493c" stroke-width="1.1" fill="none" opacity="0.7"/>`
           );
         }
       }
     }
   }
+
+  // ═══ Les cinq surfaces ═══
+  // plafond (sombre, discret)
+  masonry({
+    rows: 4,
+    cols: 6,
+    tones: ceilTones,
+    mapPt: (a, b) => [floorX(persp(b), a), ceilY(persp(b))],
+    fade: (a, b) => 1 - 0.6 * persp(b),
+    jitter: 5,
+    bow: 3,
+    mortar: 1.8,
+    strokeW: 1.1,
+    relief: false,
+  });
+  // murs latéraux
+  const wallOpts = (side) => ({
+    rows: 8,
+    cols: 8,
+    tones: wallTones,
+    mossProb: (v) => (v > 0.6 ? 0.22 : 0.05),
+    mapPt: (a, b) => [wallX(side, persp(a)), wallY(persp(a), b)],
+    fade: (a) => 1 - 0.62 * persp(a),
+    jitter: 5.5,
+    bow: 3.6,
+    mortar: 1.9,
+    strokeW: 1.1,
+  });
+  masonry(wallOpts(-1));
+  masonry(wallOpts(1));
+  // mur du fond (plein — pas d'ouverture)
+  masonry({
+    rows: 10,
+    cols: 10,
+    tones: wallTones,
+    mossProb: (v) => (v > 0.65 ? 0.18 : 0.05),
+    mapPt: (a, b) => [lerp(FX0, FX1, a), lerp(FY0, FY1, b)],
+    fade: () => 0.55,
+    jitter: 6,
+    bow: 4,
+    mortar: 1.4,
+    strokeW: 0.9,
+  });
+  // sol
+  masonry({
+    rows: 9,
+    cols: 8,
+    tones: floorTones,
+    mapPt: (a, b) => [floorX(persp(b), a), floorY(persp(b))],
+    fade: (a, b) => 1 - 0.62 * persp(b),
+    jitter: 5.5,
+    bow: 3.4,
+    mortar: 2.1,
+    strokeW: 1.2,
+  });
 
   // ═══ Détails : suintements, mousse, éboulis ═══
   for (let i = 0; i < 7; i++) {
-    // coulures d'humidité : source sombre au joint, traînée fine qui s'estompe
     const x = rng.int(FX0 + 10, FX1 - 14);
     const y = FY0 + rng.int(4, 44);
     const h = rng.int(36, 110);
@@ -269,20 +290,18 @@ function svgDungeonRoom(seed) {
     );
   }
   for (let i = 0; i < 9; i++) {
-    // mousse au pied des murs (jonction sol/mur) — plus petite avec la profondeur
     const side = rng.next() < 0.5 ? -1 : 1;
     const u = persp(0.1 + rng.next() * 0.85);
     const x = wallX(side, u) + (side < 0 ? rng.int(2, 18) : -rng.int(2, 18));
     const y = floorY(u) - rng.int(0, 5);
     const s = 1 - 0.55 * u;
-    p.push(`<ellipse cx="${x}" cy="${y}" rx="${(14 * s).toFixed(1)}" ry="${(5.5 * s).toFixed(1)}" fill="#5b7343" opacity="0.75"/>`);
-    p.push(`<ellipse cx="${x + 6 * s}" cy="${y - 3 * s}" rx="${(8 * s).toFixed(1)}" ry="${(3.5 * s).toFixed(1)}" fill="#4c6238" opacity="0.8"/>`);
+    p.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(14 * s).toFixed(1)}" ry="${(5.5 * s).toFixed(1)}" fill="#5b7343" opacity="0.75"/>`);
+    p.push(`<ellipse cx="${(x + 6 * s).toFixed(1)}" cy="${(y - 3 * s).toFixed(1)}" rx="${(8 * s).toFixed(1)}" ry="${(3.5 * s).toFixed(1)}" fill="#4c6238" opacity="0.8"/>`);
   }
   for (let i = 0; i < 9; i++) {
-    // éboulis : pierres tombées, avec ombre portée
     const u = persp(0.06 + rng.next() * 0.8);
     let c = rng.next();
-    if (c > 0.4 && c < 0.6) c = c < 0.5 ? 0.32 : 0.68; // garder l'axe central lisible
+    if (c > 0.4 && c < 0.6) c = c < 0.5 ? 0.32 : 0.68;
     const x = floorX(u, c);
     const y = floorY(u) - 2;
     const s = (15 + rng.int(0, 7)) * (1 - 0.6 * u);
@@ -305,9 +324,7 @@ function svgDungeonRoom(seed) {
   p.push(`<rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.16" style="mix-blend-mode:overlay"/>`);
 
   // ═══ Lumières ═══
-  // pénombre générale : la pièce est sombre, les torches recreusent la lumière
   p.push(`<rect width="${W}" height="${H}" fill="rgba(0,0,0,0.30)" style="mix-blend-mode:multiply"/>`);
-  // assombrissement du plafond et des angles proches
   p.push(quad([[0, 0], [W, 0], [FX1, FY0], [FX0, FY0]], 'url(#ceilsh)', 'style="mix-blend-mode:multiply"'));
   p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', 'style="mix-blend-mode:multiply"'));
   p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', 'style="mix-blend-mode:multiply"'));
@@ -316,24 +333,22 @@ function svgDungeonRoom(seed) {
   p.push(
     `<polygon points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen" opacity="0.55"/>`
   );
+
   // torches murales (gauche profonde, droite proche) : halo + flamme
   function torch(side, u, v) {
     const inward = side < 0 ? 1 : -1;
     const x = wallX(side, u) + inward * 8;
     const y = wallY(u, v);
     const s = 1 - 0.45 * u;
-    // halo large sur le mur, cœur brillant, flaque de lumière au sol
     p.push(`<circle cx="${x}" cy="${y - 8 * s}" r="${(195 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen"/>`);
     p.push(`<circle cx="${x}" cy="${y - 8 * s}" r="${(64 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen" opacity="0.9"/>`);
     p.push(
       `<ellipse cx="${(x + inward * 40 * s).toFixed(1)}" cy="${(floorY(u) - 8).toFixed(1)}" rx="${(190 * s).toFixed(0)}" ry="${(48 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen" opacity="0.8"/>`
     );
-    // support et manche
     p.push(
       `<path d="M${x} ${y + 30 * s} L${(x + inward * 7 * s).toFixed(1)} ${y}" stroke="#4a3a29" stroke-width="${(6 * s).toFixed(1)}" stroke-linecap="round"/>`
     );
     p.push(`<circle cx="${x}" cy="${(y + 28 * s).toFixed(1)}" r="${(4.5 * s).toFixed(1)}" fill="#332c22"/>`);
-    // flamme
     const fx = x + inward * 7 * s;
     p.push(
       `<path d="M${fx} ${y - 26 * s} C ${fx - 10 * s} ${y - 11 * s}, ${fx - 8 * s} ${y - 3 * s}, ${fx} ${y + 2 * s} C ${fx + 8 * s} ${y - 3 * s}, ${fx + 10 * s} ${y - 11 * s}, ${fx} ${y - 26 * s} Z" fill="#d4802e"/>`
