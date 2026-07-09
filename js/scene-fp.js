@@ -16,10 +16,10 @@ function svgDungeonRoom(seed) {
   // ——— Géométrie de la pièce (perspective à 1 point de fuite) ———
   const W = 800;
   const H = 600;
-  const FX0 = 265; // mur du fond : rectangle [FX0..FX1] × [FY0..FY1]
-  const FX1 = 535;
-  const FY0 = 155;
-  const FY1 = 425;
+  const FX0 = 200; // mur du fond : rectangle [FX0..FX1] × [FY0..FY1]
+  const FX1 = 600; // (large : la pièce doit respirer, pas un couloir)
+  const FY0 = 138;
+  const FY1 = 450;
   const PERSP = 0.38; // < 1 : compresse les blocs vers le fond
 
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -62,13 +62,15 @@ function svgDungeonRoom(seed) {
       `<radialGradient id="glow"><stop offset="0" stop-color="rgba(255,205,110,0.85)"/>` +
       `<stop offset="0.35" stop-color="rgba(255,175,72,0.38)"/>` +
       `<stop offset="1" stop-color="rgba(255,150,50,0)"/></radialGradient>` +
-      `<radialGradient id="archglow"><stop offset="0" stop-color="rgba(110,150,190,0.22)"/>` +
-      `<stop offset="1" stop-color="rgba(110,150,190,0)"/></radialGradient>` +
+      `<filter id="blotch" x="0" y="0" width="100%" height="100%">` +
+      `<feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" stitchTiles="stitch"/>` +
+      `<feColorMatrix type="saturate" values="0"/></filter>` +
+      `<filter id="grain" x="0" y="0" width="100%" height="100%">` +
+      `<feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="3" stitchTiles="stitch"/>` +
+      `<feColorMatrix type="saturate" values="0"/></filter>` +
       `<radialGradient id="vign" cx="0.5" cy="0.52" r="0.74">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="0.6" stop-color="rgba(0,0,0,0.06)"/>` +
       `<stop offset="1" stop-color="rgba(0,0,0,0.74)"/></radialGradient>` +
-      `<linearGradient id="archdark" x1="0" y1="0" x2="0" y2="1">` +
-      `<stop offset="0" stop-color="#070605"/><stop offset="1" stop-color="#1a1812"/></linearGradient>` +
       `<linearGradient id="shaft" x1="0" y1="0" x2="0.2" y2="1">` +
       `<stop offset="0" stop-color="rgba(185,205,250,0.4)"/><stop offset="1" stop-color="rgba(185,205,250,0)"/></linearGradient>` +
       `<linearGradient id="ceilsh" x1="0" y1="0" x2="0" y2="1">` +
@@ -137,11 +139,26 @@ function svgDungeonRoom(seed) {
           [wallX(side, u0), wallY(u0, v1)],
         ];
         p.push(quad(inset(pts, 1.7), tone, `stroke="${JOINT}" stroke-width="1.1"`));
-        // arête supérieure éclairée (taille de pierre)
+        // relief : arête supérieure éclairée, arête inférieure dans l'ombre
         p.push(
-          `<line x1="${pts[0][0].toFixed(1)}" y1="${(pts[0][1] + 2).toFixed(1)}" x2="${pts[1][0].toFixed(1)}" y2="${(pts[1][1] + 2).toFixed(1)}" stroke="rgba(255,244,220,0.10)" stroke-width="1.4"/>`
+          `<line x1="${pts[0][0].toFixed(1)}" y1="${(pts[0][1] + 2).toFixed(1)}" x2="${pts[1][0].toFixed(1)}" y2="${(pts[1][1] + 2).toFixed(1)}" stroke="rgba(255,244,220,0.12)" stroke-width="1.6"/>`
         );
-        // grain de la pierre
+        p.push(
+          `<line x1="${pts[3][0].toFixed(1)}" y1="${(pts[3][1] - 1.8).toFixed(1)}" x2="${pts[2][0].toFixed(1)}" y2="${(pts[2][1] - 1.8).toFixed(1)}" stroke="rgba(0,0,0,0.24)" stroke-width="1.8"/>`
+        );
+        // marbrures et grain de la pierre
+        const bw = Math.abs(pts[1][0] - pts[0][0]);
+        const bhh = Math.abs(pts[3][1] - pts[0][1]);
+        for (let m = 0; m < 2; m++) {
+          if (rng.next() < 0.65) {
+            const mx = lerp(pts[0][0], pts[1][0], 0.2 + rng.next() * 0.6);
+            const my = lerp(pts[0][1], pts[3][1], 0.25 + rng.next() * 0.5);
+            const dark = rng.next() < 0.6;
+            p.push(
+              `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${(bw * (0.14 + rng.next() * 0.2)).toFixed(1)}" ry="${(bhh * (0.1 + rng.next() * 0.16)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.10)' : 'rgba(255,248,230,0.06)'}" transform="rotate(${rng.int(-30, 30)} ${mx.toFixed(1)} ${my.toFixed(1)})"/>`
+            );
+          }
+        }
         if (rng.next() < 0.6) {
           const gx = lerp(pts[0][0], pts[1][0], 0.15 + rng.next() * 0.7);
           const gy = lerp(pts[0][1], pts[3][1], 0.2 + rng.next() * 0.6);
@@ -176,28 +193,20 @@ function svgDungeonRoom(seed) {
         if (x1 - x0 > 5) {
           const tone = rng.next() < 0.12 ? rng.pick(wallMossT) : rng.pick(wallTones);
           p.push(quad(inset([[x0, y], [x1, y], [x1, y1], [x0, y1]], 1.3), tone, `stroke="${JOINT}" stroke-width="0.9"`));
+          // relief + marbrure (mur plein, pas d'ouverture — demande Marc)
+          p.push(`<line x1="${x0 + 2}" y1="${y + 2}" x2="${x1 - 2}" y2="${y + 2}" stroke="rgba(255,244,220,0.10)" stroke-width="1.2"/>`);
+          if (rng.next() < 0.55) {
+            const mx = lerp(x0, x1, 0.25 + rng.next() * 0.5);
+            const my = lerp(y, y1, 0.3 + rng.next() * 0.4);
+            const dark = rng.next() < 0.6;
+            p.push(
+              `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${((x1 - x0) * (0.16 + rng.next() * 0.18)).toFixed(1)}" ry="${(bh * (0.12 + rng.next() * 0.14)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.10)' : 'rgba(255,248,230,0.06)'}" transform="rotate(${rng.int(-25, 25)} ${mx.toFixed(1)} ${my.toFixed(1)})"/>`
+            );
+          }
         }
         x += w;
       }
     }
-    // arche : claveaux puis ouverture sombre
-    const cx = 400;
-    const hw = 54;
-    const top = 302;
-    for (let a = 180; a < 358; a += 16) {
-      const pt = (ang, rr) => {
-        const rad = (ang * Math.PI) / 180;
-        return [cx + Math.cos(rad) * rr, top + Math.sin(rad) * rr];
-      };
-      p.push(quad([pt(a, 56), pt(a + 14, 56), pt(a + 14, 76), pt(a, 76)], '#9b968a', `stroke="${JOINT}" stroke-width="1"`));
-    }
-    p.push(`<rect x="${cx - hw - 20}" y="${top}" width="18" height="${FY1 - top}" fill="#a09b8e" stroke="${JOINT}"/>`);
-    p.push(`<rect x="${cx + hw + 2}" y="${top}" width="18" height="${FY1 - top}" fill="#a09b8e" stroke="${JOINT}"/>`);
-    p.push(
-      `<path d="M${cx - hw} ${FY1} L${cx - hw} ${top} A${hw} ${hw} 0 0 1 ${cx + hw} ${top} L${cx + hw} ${FY1} Z" fill="url(#archdark)"/>`
-    );
-    // marche usée au seuil
-    p.push(`<rect x="${cx - hw - 6}" y="${FY1 - 7}" width="${hw * 2 + 12}" height="7" rx="2" fill="#5c584c" stroke="${JOINT}" stroke-width="0.8"/>`);
   }
 
   // ═══ Sol : dallage convergent vers le point de fuite ═══
@@ -224,6 +233,16 @@ function svgDungeonRoom(seed) {
         ];
         const d = 2.4 - 1.6 * st[k];
         p.push(quad(inset(pts, d), rng.pick(floorTones), `stroke="${JOINT}" stroke-width="${(1.4 - 0.7 * st[k]).toFixed(1)}"`));
+        // usure des dalles : marbrures translucides
+        if (rng.next() < 0.5) {
+          const mx = lerp(pts[3][0], pts[2][0], 0.25 + rng.next() * 0.5);
+          const my = lerp(pts[3][1], pts[0][1], 0.25 + rng.next() * 0.5);
+          const dw = Math.abs(pts[2][0] - pts[3][0]);
+          const dark = rng.next() < 0.55;
+          p.push(
+            `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${(dw * (0.15 + rng.next() * 0.2)).toFixed(1)}" ry="${(dw * (0.05 + rng.next() * 0.07)).toFixed(1)}" fill="${dark ? 'rgba(28,24,16,0.11)' : 'rgba(255,248,230,0.06)'}"/>`
+          );
+        }
         // fissures de dalles
         if (rng.next() < 0.1 && st[k] < 0.75) {
           const fx = lerp(pts[3][0], pts[2][0], 0.25 + rng.next() * 0.5);
@@ -238,7 +257,7 @@ function svgDungeonRoom(seed) {
   }
 
   // ═══ Détails : suintements, mousse, éboulis ═══
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 7; i++) {
     // coulures d'humidité : source sombre au joint, traînée fine qui s'estompe
     const x = rng.int(FX0 + 10, FX1 - 14);
     const y = FY0 + rng.int(4, 44);
@@ -281,6 +300,10 @@ function svgDungeonRoom(seed) {
     );
   }
 
+  // ═══ Texture : taches de pierre (basse fréquence) + grain fin ═══
+  p.push(`<rect width="${W}" height="${H}" filter="url(#blotch)" opacity="0.14" style="mix-blend-mode:multiply"/>`);
+  p.push(`<rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.16" style="mix-blend-mode:overlay"/>`);
+
   // ═══ Lumières ═══
   // pénombre générale : la pièce est sombre, les torches recreusent la lumière
   p.push(`<rect width="${W}" height="${H}" fill="rgba(0,0,0,0.30)" style="mix-blend-mode:multiply"/>`);
@@ -293,11 +316,6 @@ function svgDungeonRoom(seed) {
   p.push(
     `<polygon points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen" opacity="0.55"/>`
   );
-  // lueur froide filtrant de l'arche
-  p.push(
-    `<ellipse cx="400" cy="${FY1 - 30}" rx="85" ry="70" fill="url(#archglow)" style="mix-blend-mode:screen"/>`
-  );
-
   // torches murales (gauche profonde, droite proche) : halo + flamme
   function torch(side, u, v) {
     const inward = side < 0 ? 1 : -1;
