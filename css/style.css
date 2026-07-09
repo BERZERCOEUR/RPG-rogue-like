@@ -248,56 +248,47 @@ h1 {
   right: 4px;
 }
 
-/* ——— La scène : monstres en haut à droite, aventurier de dos en bas à gauche ——— */
+/* ——— La scène : décor SVG (donjon vu de face), monstres en haut à droite,
+       aventurier de dos en bas à gauche ——— */
 .scene {
   position: relative;
   height: 300px;
   border-radius: 8px;
   overflow: hidden;
   border: 0.5px solid #252522;
-  /* mur du donjon en haut, sol en bas (aplats, sans dégradé) */
-  background: #201f1b;
+  background: #191813;
 }
 
-.scene::before {
-  content: '';
+.scene-bg {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 55%;
-  bottom: 0;
-  background: #2a2923;
+  inset: 0;
 }
 
-/* Plateformes (ellipses, comme le template) */
-.platform {
+.scene-bg svg {
+  display: block;
+}
+
+/* Ombre portée sous les monstres */
+.shadow {
   position: absolute;
   border-radius: 50%;
-  background: #35342c;
-  border: 0.5px solid #3f3e34;
+  background: rgba(8, 8, 4, 0.32);
 }
 
-.platform-enemy {
-  width: 62%;
-  height: 52px;
-  right: 2%;
-  top: 38%;
+.shadow-enemy {
+  width: 44%;
+  height: 15px;
+  right: 18%;
+  top: 64.5%;
 }
 
-.platform-player {
-  width: 70%;
-  height: 60px;
-  left: -18%;
-  bottom: -28px;
-}
-
-/* Monstres sur la plateforme */
+/* Monstres posés au sol, devant le mur (à gauche de l'arche) */
 .enemy-zone {
   position: absolute;
-  right: 4%;
-  top: 12%;
-  width: 60%;
-  height: 46%;
+  right: 15%;
+  top: 24%;
+  width: 55%;
+  height: 44%;
   display: flex;
   align-items: flex-end;
   justify-content: center;

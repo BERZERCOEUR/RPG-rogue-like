@@ -21,6 +21,137 @@ function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Décor de combat vu de face (références Marc : ruines de pierres claires,
+ * mousse verte) : mur en ruine avec arche, torche, sol pavé en pierres,
+ * os, crâne, pièces d'or, mousse et éboulis. Généré en SVG par un RNG à
+ * seed fixe → décor déterministe, léger, sans assets externes.
+ */
+function svgBattleScene() {
+  const rng = new RNG('decor-combat-v1');
+  const W = 440;
+  const H = 300;
+  const FLOOR = 190;
+  const wallGreys = ['#8b897f', '#96948a', '#828076', '#9d9b91', '#8f8c82'];
+  const wallMoss = ['#83906c', '#8e9a78'];
+  const floorTones = ['#7d816d', '#878b77', '#747865', '#8f927e'];
+  const p = [];
+
+  p.push(`<rect width="${W}" height="${H}" fill="#191813"/>`);
+
+  // ——— Mur du fond : rangées de blocs, sommet en ruine (rangées hautes lacunaires)
+  const rowH = 21;
+  for (let r = 0; r < 9; r++) {
+    const yTop = FLOOR - (r + 1) * rowH;
+    let x = r % 2 ? -16 : 0;
+    while (x < W) {
+      const w = rng.int(26, 54);
+      const skipProb = r >= 5 ? (r - 4) * 0.26 : 0.02;
+      if (rng.next() > skipProb) {
+        const c = rng.next() < 0.15 ? rng.pick(wallMoss) : rng.pick(wallGreys);
+        const h = rowH - 2 - (r >= 6 ? rng.int(0, 7) : 0);
+        p.push(`<rect x="${x + 1}" y="${yTop + (rowH - 2 - h)}" width="${w - 2}" height="${h}" rx="2" fill="${c}"/>`);
+      }
+      x += w;
+    }
+  }
+
+  // ——— Arche en ruine (ouverture sombre + claveaux + jambages)
+  const ax = 308;
+  const aw = 34;
+  const atop = 130;
+  for (let yj = atop; yj < FLOOR; yj += 23) {
+    p.push(`<rect x="${ax - aw - 17}" y="${yj}" width="16" height="21" rx="2" fill="#a3a196"/>`);
+    p.push(`<rect x="${ax + aw + 1}" y="${yj}" width="16" height="21" rx="2" fill="#a3a196"/>`);
+  }
+  p.push(`<path d="M${ax - aw} ${FLOOR} L${ax - aw} ${atop} A${aw} ${aw} 0 0 1 ${ax + aw} ${atop} L${ax + aw} ${FLOOR} Z" fill="#1c1b15"/>`);
+  for (let a = 180; a < 358; a += 18) {
+    const r1 = aw + 1;
+    const r2 = aw + 15;
+    const a2 = a + 16;
+    const pt = (ang, rr) => {
+      const rad = (ang * Math.PI) / 180;
+      return `${(ax + Math.cos(rad) * rr).toFixed(1)} ${(atop + Math.sin(rad) * rr).toFixed(1)}`;
+    };
+    p.push(`<polygon points="${pt(a, r1)}, ${pt(a2, r1)}, ${pt(a2, r2)}, ${pt(a, r2)}" fill="#aaa89c"/>`);
+  }
+
+  // ——— Fissures du mur
+  p.push(`<path d="M60 150 l7 9 l-4 8 l8 10" stroke="#4a4840" stroke-width="1.4" fill="none"/>`);
+  p.push(`<path d="M225 120 l-6 10 l5 8 l-7 11" stroke="#4a4840" stroke-width="1.4" fill="none"/>`);
+  p.push(`<path d="M395 165 l6 8 l-3 9" stroke="#4a4840" stroke-width="1.3" fill="none"/>`);
+
+  // ——— Mousse sur le mur (touffes retombantes)
+  for (let i = 0; i < 11; i++) {
+    const mx = rng.int(12, W - 16);
+    const my = rng.int(FLOOR - 130, FLOOR - 8);
+    const rx = rng.int(8, 17);
+    p.push(`<ellipse cx="${mx}" cy="${my}" rx="${rx}" ry="${rng.int(4, 7)}" fill="#61804a" opacity="0.75"/>`);
+    p.push(`<ellipse cx="${mx + rng.int(-6, 6)}" cy="${my + 4}" rx="${Math.round(rx * 0.55)}" ry="${rng.int(3, 5)}" fill="#54713f" opacity="0.8"/>`);
+  }
+
+  // ——— Torche murale (lueur + support + flamme)
+  const torch = (x, y) =>
+    `<circle cx="${x}" cy="${y - 10}" r="44" fill="#e8a83e" opacity="0.08"/>` +
+    `<circle cx="${x}" cy="${y - 10}" r="23" fill="#e8a83e" opacity="0.13"/>` +
+    `<rect x="${x - 3}" y="${y}" width="6" height="26" rx="2" fill="#5a4632"/>` +
+    `<path d="M${x - 8} ${y + 24} h16 l-4 9 h-8 Z" fill="#4d453a"/>` +
+    `<path d="M${x} ${y - 22} C ${x - 9} ${y - 9}, ${x - 7} ${y - 2}, ${x} ${y + 3} C ${x + 7} ${y - 2}, ${x + 9} ${y - 9}, ${x} ${y - 22} Z" fill="#d07a2e"/>` +
+    `<path d="M${x} ${y - 13} C ${x - 5} ${y - 6}, ${x - 4} ${y - 1}, ${x} ${y + 2} C ${x + 4} ${y - 1}, ${x + 5} ${y - 6}, ${x} ${y - 13} Z" fill="#f4c95a"/>`;
+  p.push(torch(118, 92));
+  p.push(torch(408, 104));
+
+  // ——— Sol pavé vu de face (rangées de plus en plus larges vers le joueur)
+  p.push(`<rect x="0" y="${FLOOR}" width="${W}" height="${H - FLOOR}" fill="#565547"/>`);
+  let fy = FLOOR;
+  for (const fh of [15, 18, 23, 28, 32]) {
+    let x = -rng.int(4, 30);
+    while (x < W) {
+      const w = Math.round(fh * 2.3) + rng.int(-6, 10);
+      p.push(`<rect x="${x + 1.5}" y="${fy + 1.5}" width="${w - 3}" height="${fh - 3}" rx="2.5" fill="${rng.pick(floorTones)}"/>`);
+      x += w;
+    }
+    fy += fh;
+  }
+
+  // ——— Éboulis au pied du mur
+  for (let i = 0; i < 8; i++) {
+    const rx = rng.int(8, W - 20);
+    p.push(`<rect x="${rx}" y="${FLOOR - rng.int(2, 8)}" width="${rng.int(8, 17)}" height="${rng.int(6, 11)}" rx="2" fill="${rng.pick(wallGreys)}"/>`);
+  }
+
+  // ——— Touffes d'herbe/mousse entre les pavés
+  for (let i = 0; i < 6; i++) {
+    const gx = rng.int(20, W - 20);
+    const gy = rng.int(FLOOR + 8, H - 10);
+    p.push(`<path d="M${gx} ${gy} q -2 -7 -5 -9 M${gx} ${gy} q 0 -8 1 -10 M${gx} ${gy} q 3 -6 6 -8" stroke="#5d7a47" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
+  }
+
+  // ——— Crâne et os
+  p.push(`<ellipse cx="152" cy="268" rx="10" ry="9" fill="#d8d3c0"/>`);
+  p.push(`<rect x="146" y="274" width="12" height="6" rx="2.5" fill="#d8d3c0"/>`);
+  p.push(`<circle cx="148.5" cy="267" r="2.3" fill="#26251f"/>`);
+  p.push(`<circle cx="156" cy="267" r="2.3" fill="#26251f"/>`);
+  p.push(`<path d="M150 277 v2.5 M153.5 277 v2.5" stroke="#26251f" stroke-width="1.1"/>`);
+  const bone = (x1, y1, x2, y2) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d8d3c0" stroke-width="4.2" stroke-linecap="round"/>` +
+    `<circle cx="${x1}" cy="${y1 - 2.5}" r="3" fill="#d8d3c0"/><circle cx="${x1 - 1}" cy="${y1 + 2.5}" r="3" fill="#d8d3c0"/>` +
+    `<circle cx="${x2}" cy="${y2 - 2.5}" r="3" fill="#d8d3c0"/><circle cx="${x2 + 1}" cy="${y2 + 2.5}" r="3" fill="#d8d3c0"/>`;
+  p.push(bone(172, 262, 194, 270));
+  p.push(bone(192, 258, 174, 273));
+
+  // ——— Tas de pièces d'or
+  p.push(`<ellipse cx="252" cy="286" rx="21" ry="6.5" fill="#a8842a"/>`);
+  const coin = (x, y) =>
+    `<ellipse cx="${x}" cy="${y}" rx="5.6" ry="2.5" fill="#d9ac36" stroke="#96731d" stroke-width="0.8"/>` +
+    `<ellipse cx="${x}" cy="${y - 0.7}" rx="3" ry="1" fill="#f0d374" opacity="0.9"/>`;
+  for (const [cx2, cy2] of [[241, 284], [251, 282], [261, 285], [246, 287], [257, 288], [252, 279], [222, 292], [280, 290], [210, 285]]) {
+    p.push(coin(cx2, cy2));
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" width="100%" height="100%">${p.join('')}</svg>`;
+}
+
 /** Rat géant, de profil, tourné vers l'aventurier (bas-gauche). */
 function svgRat(size) {
   return `
@@ -83,11 +214,11 @@ class CombatUI {
     this.root.innerHTML = `
       <div class="atb-strip" id="atb-track"></div>
       <div class="scene">
-        <div class="infobox enemy-box" id="enemy-box"></div>
-        <div class="platform platform-enemy"></div>
+        <div class="scene-bg">${svgBattleScene()}</div>
+        <div class="shadow shadow-enemy"></div>
         <div class="enemy-zone" id="enemy-zone"></div>
-        <div class="platform platform-player"></div>
         <div class="player-sprite" id="player-sprite"></div>
+        <div class="infobox enemy-box" id="enemy-box"></div>
         <div class="infobox player-box" id="player-box"></div>
       </div>
       <div class="dialog">

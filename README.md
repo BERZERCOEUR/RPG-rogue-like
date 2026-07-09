@@ -104,7 +104,13 @@ template de scène de combat Gen 4) :
 - ciblage en cliquant un monstre (flèche ▼), monstre d'essai : « Rat géant » ;
 - barre ATB fine conservée au-dessus de la scène (lisibilité de l'ordre des
   tours) ; délais et déroulé du §13.6 conservés ; le journal (§13.5) reste
-  enregistré en données mais l'affichage passe par la boîte de dialogue.
+  enregistré en données mais l'affichage passe par la boîte de dialogue ;
+- **décor détaillé vu de face** (références fournies par Marc : ruines de
+  pierres claires et mousse) : mur en ruine au sommet lacunaire, arche sombre
+  à claveaux, deux torches murales avec halo, mousse et fissures, sol pavé,
+  crâne + os croisés, tas de pièces d'or, touffes d'herbe, éboulis. Le tout
+  généré en SVG par un RNG à seed fixe (`svgBattleScene`) — déterministe,
+  léger, sans assets externes.
 
 Le reste du thème (plateau, ville, états de cases §13.2) reste conforme au GDD.
 
