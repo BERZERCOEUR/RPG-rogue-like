@@ -78,6 +78,26 @@ function svgDungeonRoom(seed) {
 
   const p = [];
 
+  // ═══ Animations (flammes qui dansent, halos vacillants, poussières) ═══
+  p.push(
+    `<style>` +
+      `.fp-flame{transform-box:view-box;animation:fpFlame 1.15s ease-in-out infinite}` +
+      `@keyframes fpFlame{0%{transform:rotate(0deg) scale(1,1)}18%{transform:rotate(-3.6deg) scale(0.985,1.055)}` +
+      `38%{transform:rotate(2.4deg) scale(1.012,0.94)}57%{transform:rotate(-1.8deg) scale(0.99,1.065)}` +
+      `76%{transform:rotate(3deg) scale(1.005,0.965)}100%{transform:rotate(0deg) scale(1,1)}}` +
+      `.fp-gflick{animation:fpFlick 2.6s ease-in-out infinite}` +
+      `@keyframes fpFlick{0%{opacity:1}13%{opacity:.8}27%{opacity:.94}46%{opacity:.76}` +
+      `62%{opacity:.9}80%{opacity:.83}100%{opacity:1}}` +
+      `.fp-shaft{animation:fpShaft 9s ease-in-out infinite}` +
+      `@keyframes fpShaft{0%{opacity:.42}50%{opacity:.6}100%{opacity:.42}}` +
+      `.fp-dust circle{mix-blend-mode:screen}` +
+      `@keyframes fpDriftA{from{transform:translate(0,0)}to{transform:translate(17px,-26px)}}` +
+      `@keyframes fpDriftB{from{transform:translate(0,0)}to{transform:translate(-21px,-15px)}}` +
+      `@keyframes fpDriftC{from{transform:translate(0,0)}to{transform:translate(10px,-34px)}}` +
+      `@keyframes fpFade{0%{opacity:0}22%{opacity:.85}52%{opacity:.3}78%{opacity:.7}100%{opacity:0}}` +
+      `</style>`
+  );
+
   // ═══ Définitions (lumières, relief, textures) ═══
   p.push(
     `<defs>` +
@@ -329,27 +349,36 @@ function svgDungeonRoom(seed) {
   p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', 'style="mix-blend-mode:multiply"'));
   p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', 'style="mix-blend-mode:multiply"'));
 
-  // rai de lumière froide tombant d'une faille du plafond
+  // rai de lumière froide tombant d'une faille du plafond (pulsation lente)
   p.push(
-    `<polygon points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen" opacity="0.55"/>`
+    `<polygon class="fp-shaft" points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen"/>`
   );
 
-  // torches murales (gauche profonde, droite proche) : halo + flamme
-  function torch(side, u, v) {
+  // torches murales (gauche profonde, droite proche) : halo vacillant + flamme dansante
+  const torchPos = [];
+  function torch(side, u, v, flickDur, flameDur, delay) {
     const inward = side < 0 ? 1 : -1;
     const x = wallX(side, u) + inward * 8;
     const y = wallY(u, v);
     const s = 1 - 0.45 * u;
+    torchPos.push([x, y, s]);
+    // halos regroupés : l'opacité du groupe vacille
+    p.push(`<g class="fp-gflick" style="animation-duration:${flickDur}s;animation-delay:${-delay}s">`);
     p.push(`<circle cx="${x}" cy="${y - 8 * s}" r="${(195 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen"/>`);
     p.push(`<circle cx="${x}" cy="${y - 8 * s}" r="${(64 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen" opacity="0.9"/>`);
     p.push(
       `<ellipse cx="${(x + inward * 40 * s).toFixed(1)}" cy="${(floorY(u) - 8).toFixed(1)}" rx="${(190 * s).toFixed(0)}" ry="${(48 * s).toFixed(0)}" fill="url(#glow)" style="mix-blend-mode:screen" opacity="0.8"/>`
     );
+    p.push(`</g>`);
     p.push(
       `<path d="M${x} ${y + 30 * s} L${(x + inward * 7 * s).toFixed(1)} ${y}" stroke="#4a3a29" stroke-width="${(6 * s).toFixed(1)}" stroke-linecap="round"/>`
     );
     p.push(`<circle cx="${x}" cy="${(y + 28 * s).toFixed(1)}" r="${(4.5 * s).toFixed(1)}" fill="#332c22"/>`);
     const fx = x + inward * 7 * s;
+    // flamme : le groupe danse autour de sa base
+    p.push(
+      `<g class="fp-flame" style="transform-origin:${fx.toFixed(1)}px ${(y + 2 * s).toFixed(1)}px;animation-duration:${flameDur}s;animation-delay:${-delay}s">`
+    );
     p.push(
       `<path d="M${fx} ${y - 26 * s} C ${fx - 10 * s} ${y - 11 * s}, ${fx - 8 * s} ${y - 3 * s}, ${fx} ${y + 2 * s} C ${fx + 8 * s} ${y - 3 * s}, ${fx + 10 * s} ${y - 11 * s}, ${fx} ${y - 26 * s} Z" fill="#d4802e"/>`
     );
@@ -357,9 +386,42 @@ function svgDungeonRoom(seed) {
       `<path d="M${fx} ${y - 15 * s} C ${fx - 5 * s} ${y - 6 * s}, ${fx - 4 * s} ${y - 1 * s}, ${fx} ${y + 1.5 * s} C ${fx + 4 * s} ${y - 1 * s}, ${fx + 5 * s} ${y - 6 * s}, ${fx} ${y - 15 * s} Z" fill="#f4c95a"/>`
     );
     p.push(`<ellipse cx="${fx}" cy="${(y - 4 * s).toFixed(1)}" rx="${(2.4 * s).toFixed(1)}" ry="${(4 * s).toFixed(1)}" fill="#fdf0c0"/>`);
+    p.push(`</g>`);
   }
-  torch(-1, 0.52, 0.34);
-  torch(1, 0.28, 0.32);
+  torch(-1, 0.52, 0.34, 2.6, 1.15, 0);
+  torch(1, 0.28, 0.32, 3.3, 1.32, 1.4);
+
+  // ═══ Poussières en suspension, qui dérivent dans la lumière ═══
+  {
+    const drifts = ['fpDriftA', 'fpDriftB', 'fpDriftC'];
+    for (let i = 0; i < 18; i++) {
+      let x;
+      let y;
+      if (i < 5) {
+        // près du rai de lumière
+        x = 300 + rng.int(0, 80);
+        y = 100 + rng.int(0, 220);
+      } else if (i < 11) {
+        // près des torches
+        const [tx, ty, ts] = torchPos[i % 2];
+        x = tx + rng.int(-90, 90) * ts;
+        y = ty + rng.int(-70, 90) * ts;
+      } else {
+        x = rng.int(60, W - 60);
+        y = rng.int(110, H - 90);
+      }
+      const r = 0.7 + rng.next() * 1.2;
+      const alpha = 0.16 + rng.next() * 0.24;
+      const drift = drifts[rng.int(0, drifts.length - 1)];
+      const dur = (7 + rng.next() * 8).toFixed(1);
+      const fdur = (5 + rng.next() * 6).toFixed(1);
+      p.push(
+        `<g class="fp-dust" style="animation:${drift} ${dur}s ease-in-out ${(-rng.next() * 10).toFixed(1)}s infinite alternate">` +
+          `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="rgba(255,238,200,${alpha.toFixed(2)})" ` +
+          `style="animation:fpFade ${fdur}s ease-in-out ${(-rng.next() * 8).toFixed(1)}s infinite"/></g>`
+      );
+    }
+  }
 
   // vignettage global
   p.push(`<rect width="${W}" height="${H}" fill="url(#vign)" style="mix-blend-mode:multiply"/>`);
