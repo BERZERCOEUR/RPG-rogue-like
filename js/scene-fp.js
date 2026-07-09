@@ -88,8 +88,23 @@ function svgDungeonRoom(seed) {
       `.fp-gflick{animation:fpFlick 2.6s ease-in-out infinite}` +
       `@keyframes fpFlick{0%{opacity:1}13%{opacity:.8}27%{opacity:.94}46%{opacity:.76}` +
       `62%{opacity:.9}80%{opacity:.83}100%{opacity:1}}` +
-      `.fp-shaft{animation:fpShaft 9s ease-in-out infinite}` +
-      `@keyframes fpShaft{0%{opacity:.42}50%{opacity:.6}100%{opacity:.42}}` +
+      `.fp-shaft{transform-box:view-box;animation:fpShaft 16s ease-in-out infinite}` +
+      // lumière du dehors : ondulation calme, puis une ombre passe (chute
+      // rapide, double battement), puis la lumière refiltre à travers le plafond
+      `@keyframes fpShaft{0%{opacity:.55;transform:translateX(0)}` +
+      `9%{opacity:.47;transform:translateX(-1.5px)}` +
+      `18%{opacity:.58;transform:translateX(1px)}` +
+      `27%{opacity:.51;transform:translateX(0)}` +
+      `33%{opacity:.55;transform:translateX(0)}` +
+      `36%{opacity:.16;transform:translateX(2.5px)}` +
+      `40%{opacity:.08;transform:translateX(3px)}` +
+      `44%{opacity:.3;transform:translateX(1.5px)}` +
+      `48%{opacity:.12;transform:translateX(2.5px)}` +
+      `55%{opacity:.45;transform:translateX(.5px)}` +
+      `64%{opacity:.58;transform:translateX(-1px)}` +
+      `76%{opacity:.5;transform:translateX(.5px)}` +
+      `88%{opacity:.57;transform:translateX(-.5px)}` +
+      `100%{opacity:.55;transform:translateX(0)}}` +
       `.fp-dust circle{mix-blend-mode:screen}` +
       `@keyframes fpDriftA{from{transform:translate(0,0)}to{transform:translate(17px,-26px)}}` +
       `@keyframes fpDriftB{from{transform:translate(0,0)}to{transform:translate(-21px,-15px)}}` +
@@ -349,10 +364,19 @@ function svgDungeonRoom(seed) {
   p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', 'style="mix-blend-mode:multiply"'));
   p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', 'style="mix-blend-mode:multiply"'));
 
-  // rai de lumière froide tombant d'une faille du plafond (pulsation lente)
+  // rai de lumière froide tombant d'une faille du plafond ; le groupe entier
+  // (rai + flaque au sol) subit les passages d'ombre venus de l'extérieur
+  p.push(`<g class="fp-shaft">`);
   p.push(
-    `<polygon class="fp-shaft" points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen"/>`
+    `<polygon points="318,0 372,0 348,${FY0 + 74} 288,${FY0 + 52}" fill="url(#shaft)" style="mix-blend-mode:screen"/>`
   );
+  p.push(
+    `<polygon points="288,${FY0 + 52} 348,${FY0 + 74} 338,${FY1 + 26} 300,${FY1 + 18}" fill="url(#shaft)" style="mix-blend-mode:screen" opacity="0.35"/>`
+  );
+  p.push(
+    `<ellipse cx="320" cy="${FY1 + 26}" rx="66" ry="15" fill="rgba(178,200,248,0.14)" style="mix-blend-mode:screen"/>`
+  );
+  p.push(`</g>`);
 
   // torches murales (gauche profonde, droite proche) : halo vacillant + flamme dansante
   const torchPos = [];
