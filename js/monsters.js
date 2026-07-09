@@ -59,7 +59,7 @@ function generateMonsterGroup(rng, cfg, etage) {
     const stats = rollMonsterStats(rng, cfg, totalPoints);
     const pvMax = pvPool + stats.constitution * C.PV_PER_CON;
     return {
-      name: count > 1 ? `Bête errante ${letters[i]}` : 'Bête errante',
+      name: count > 1 ? `Rat géant ${letters[i]}` : 'Rat géant',
       side: 'monstres',
       famille: 'Bête',
       rarete: rarity.label,

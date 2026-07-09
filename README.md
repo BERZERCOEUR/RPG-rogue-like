@@ -87,6 +87,27 @@ paramètres sont optionnels (`race=aleatoire`, `monstres=auto` → tirage §7.6)
    jouer ; seuls les tirages dynamiques dépendent du parcours.
 6. **Bouton « Entrer »** sur la ville : affiché mais inactif jusqu'au jalon M5.
 
+## Refonte de l'interface de combat (décision Marc, juillet 2026)
+
+L'interface de combat n'applique **plus** la structure en bulles du §13.5 du
+GDD : Marc a demandé une composition **façon Pokémon simplifiée** (référence :
+template de scène de combat Gen 4) :
+
+- scène en diagonale : monstres sur leur plateforme en haut à droite,
+  **aventurier vu de dos au premier plan** en bas à gauche (sprite SVG,
+  liseré de cape à la couleur de la race) ;
+- encart monstre (nom, famille · rareté, barre PV sans chiffres) en haut à
+  gauche ; encart aventurier (PV chiffrés + barres MP/EN) en bas à droite —
+  boîtes crème inclinées comme le template ;
+- boîte de dialogue en bas : message à gauche, **menu 2×2 coloré** à droite
+  (Attaque rouge / Objets orange / Compétences vert / Fuite bleu) ;
+- ciblage en cliquant un monstre (flèche ▼), monstre d'essai : « Rat géant » ;
+- barre ATB fine conservée au-dessus de la scène (lisibilité de l'ordre des
+  tours) ; délais et déroulé du §13.6 conservés ; le journal (§13.5) reste
+  enregistré en données mais l'affichage passe par la boîte de dialogue.
+
+Le reste du thème (plateau, ville, états de cases §13.2) reste conforme au GDD.
+
 ## Décisions prises en M3 (à valider par Marc)
 
 1. **ATB en temps continu** : plutôt que la règle discrète « les autres
