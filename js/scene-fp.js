@@ -23,6 +23,7 @@ const FP_THEMES = {
     bg: '#141310',
     mortar: '#26231c',
     joint: '#332f27',
+    jitterMul: 1,
     wall: ['#847f70', '#8d887a', '#7a7566', '#928d7e', '#807b6c'],
     mossTones: ['#7d8266', '#747c5e'],
     ceil: ['#5a564c', '#615d52', '#534f46'],
@@ -41,25 +42,30 @@ const FP_THEMES = {
     mottleLight: 'rgba(255,248,230,0.06)',
   },
   manga: {
-    bg: '#8f7a52',
-    mortar: '#6b5939',
-    joint: '#4a3a26',
+    bg: '#2c2517',
+    mortar: '#382e1d',
+    joint: '#241c10',
     wall: ['#d9cba6', '#d1c199', '#c6b58c', '#e0d4b4', '#cbbc94'],
-    mossTones: ['#aaa46e', '#9b9762'],
+    mossTones: ['#a09a64', '#918d58'],
     ceil: ['#b7a87f', '#ab9d76', '#a2946e'],
     floor: ['#c9ba90', '#c1b287', '#b8a97e', '#d1c39a'],
-    mossFill: ['#8e8a52', '#7d7a46'],
+    earth: ['#7d6a46', '#71603f', '#87724c'],
+    mossFill: ['#68783c', '#4e5e30'],
     ink: true,
     strokeMul: 1.6,
-    dim: 'rgba(58,44,24,0.12)',
-    vignEdge: 'rgba(58,42,22,0.5)',
-    shaftRGB: '252,242,210',
-    shaftFloor: 'rgba(250,240,206,0.16)',
-    blotchOp: 0.09,
-    grainOp: 0.12,
+    jitterMul: 1.3,
+    terrain: true, // sol mêlé pierre/terre, avec des trous
+    mossCaps: true, // mousse en relief posée sur les pierres
+    leaks: true, // lumière extérieure filtrant entre les pierres
+    dim: 'rgba(8,6,3,0.60)',
+    vignEdge: 'rgba(10,7,3,0.88)',
+    shaftRGB: '250,240,205',
+    shaftFloor: 'rgba(248,238,202,0.15)',
+    blotchOp: 0.12,
+    grainOp: 0.14,
     dustRGB: '255,246,216',
-    mottleDark: 'rgba(74,58,34,0.10)',
-    mottleLight: 'rgba(255,252,236,0.10)',
+    mottleDark: 'rgba(50,38,20,0.13)',
+    mottleLight: 'rgba(255,252,236,0.09)',
   },
 };
 
@@ -145,6 +151,42 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     return s;
   };
 
+  /**
+   * Calotte de mousse en relief posée sur l'arête A→B d'une pierre
+   * (référence Marc : rochers moussus) : monticules au-dessus de l'arête,
+   * festons qui retombent sur la face, deux tons + points d'encre.
+   */
+  const mossCap = (A, B, bh, fade) => {
+    const dx = B[0] - A[0];
+    const dy = B[1] - A[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const nxu = dy / len;
+    const nyu = -dx / len; // normale « vers le haut » de l'arête
+    const h = Math.min(15, bh * 0.52) * (0.75 + rng.next() * 0.6) * fade;
+    const build = (hh) => {
+      const bumps = 2 + rng.int(1, 3);
+      let d = `M${P(A[0], A[1])}`;
+      for (let i = 1; i <= bumps; i++) {
+        const t0 = (i - 0.5) / bumps;
+        const t1 = i / bumps;
+        d += `Q${P(A[0] + dx * t0 + nxu * hh * (1 + rng.next() * 0.5), A[1] + dy * t0 + nyu * hh * (1 + rng.next() * 0.5))} ${P(A[0] + dx * t1 + nxu * hh * 0.15, A[1] + dy * t1 + nyu * hh * 0.15)}`;
+      }
+      const scal = bumps + 1 + rng.int(0, 2);
+      for (let i = scal; i >= 1; i--) {
+        const t0 = (i - 0.5) / scal;
+        const t1 = (i - 1) / scal;
+        d += `Q${P(A[0] + dx * t0 - nxu * hh * (0.5 + rng.next() * 0.7), A[1] + dy * t0 - nyu * hh * (0.5 + rng.next() * 0.7))} ${P(A[0] + dx * t1 - nxu * hh * 0.08, A[1] + dy * t1 - nyu * hh * 0.08)}`;
+      }
+      return d + 'Z';
+    };
+    let s = `<path d="${build(h)}" fill="${T.mossFill[1]}" stroke="${JOINT}" stroke-width="${(0.9 * fade).toFixed(1)}"/>`;
+    s += `<path d="${build(h * 0.72)}" fill="${T.mossFill[0]}"/>`;
+    for (let i = 0; i < 3; i++) {
+      s += `<circle cx="${(A[0] + dx * rng.next()).toFixed(1)}" cy="${(A[1] + dy * rng.next() + nyu * h * 0.3).toFixed(1)}" r="${(0.8 * fade).toFixed(1)}" fill="rgba(30,36,14,0.5)"/>`;
+    }
+    return s;
+  };
+
   /** Touffe d'herbe dessinée (thème manga, comme la référence). */
   const tuft = (x, y, s, color) => {
     let d = '';
@@ -187,6 +229,8 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
       `76%{opacity:.5;transform:translateX(.5px)}` +
       `88%{opacity:.57;transform:translateX(-.5px)}` +
       `100%{opacity:.55;transform:translateX(0)}}` +
+      `.fp-leak{animation:fpLeak 13s ease-in-out infinite}` +
+      `@keyframes fpLeak{0%{opacity:.75}30%{opacity:1}55%{opacity:.7}80%{opacity:.95}100%{opacity:.75}}` +
       `.fp-dust circle{mix-blend-mode:screen}` +
       `@keyframes fpDriftA{from{transform:translate(0,0)}to{transform:translate(17px,-26px)}}` +
       `@keyframes fpDriftB{from{transform:translate(0,0)}to{transform:translate(-21px,-15px)}}` +
@@ -207,6 +251,8 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
       `<radialGradient id="dent"><stop offset="0" stop-color="rgba(8,6,3,0.26)"/>` +
       `<stop offset="0.65" stop-color="rgba(8,6,3,0.09)"/>` +
       `<stop offset="1" stop-color="rgba(8,6,3,0)"/></radialGradient>` +
+      `<radialGradient id="leakglow"><stop offset="0" stop-color="rgba(255,246,214,0.4)"/>` +
+      `<stop offset="1" stop-color="rgba(255,246,214,0)"/></radialGradient>` +
       `<radialGradient id="vign" cx="0.5" cy="0.52" r="0.74">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="0.6" stop-color="rgba(0,0,0,0.06)"/>` +
       `<stop offset="1" stop-color="${T.vignEdge}"/></radialGradient>` +
@@ -272,7 +318,7 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
         const fade = o.fade((a0 + a1) / 2, (vb[j] + vb[j + 1]) / 2);
         const corner = (a, jj) => {
           const [x, y] = o.mapPt(a, vb[jj]);
-          const jit = o.jitter * fade;
+          const jit = o.jitter * (T.jitterMul || 1) * fade;
           return [
             x + (rng.next() - 0.5) * jit,
             y +
@@ -283,17 +329,53 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
         const cs = [corner(a0, j), corner(a1, j), corner(a1, j + 1), corner(a0, j + 1)];
         const ins = inset(cs, o.mortar * fade + 0.5);
         const mossy = o.mossProb && rng.next() < o.mossProb(vb[j]);
-        const tone = mossy ? rng.pick(wallMossT) : rng.pick(o.tones);
+        let tone = mossy ? rng.pick(wallMossT) : rng.pick(o.tones);
+
+        // ——— sol mêlé (thème dessin) : dalles, plaques de terre, trous ———
+        let variant = 'stone';
+        if (o.terrain && T.terrain) {
+          const tv = rng.next();
+          if (tv < 0.14) variant = 'earth';
+          else if (tv < 0.2) variant = 'hole';
+        }
+        if (variant === 'earth') tone = rng.pick(T.earth);
+        if (variant === 'hole') tone = '#191410';
+
         p.push(
-          `<path d="${stonePath(ins, o.bow * fade)}" fill="${tone}" stroke="${JOINT}" stroke-width="${(o.strokeW * T.strokeMul * (0.5 + 0.5 * fade)).toFixed(1)}"/>`
+          `<path d="${stonePath(ins, o.bow * fade * (variant === 'stone' ? 1 : 1.8))}" fill="${tone}" stroke="${JOINT}" stroke-width="${(o.strokeW * T.strokeMul * (0.5 + 0.5 * fade) * (variant === 'hole' ? 1.3 : 1)).toFixed(1)}"/>`
         );
 
-        // ——— relief : bombée / creuse / plate ———
         const cx = ins.reduce((s, q) => s + q[0], 0) / 4;
         const cy = ins.reduce((s, q) => s + q[1], 0) / 4;
         const bw = (Math.abs(ins[1][0] - ins[0][0]) + Math.abs(ins[2][0] - ins[3][0])) / 2 || 6;
         const bh = (Math.abs(ins[3][1] - ins[0][1]) + Math.abs(ins[2][1] - ins[1][1])) / 2 || 6;
         const rot = `rotate(${rng.int(-14, 14)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
+
+        if (variant === 'earth') {
+          // terre battue : criblée de points d'encre et de cailloutis
+          for (let i = 0; i < rng.int(6, 10); i++) {
+            p.push(
+              `<circle cx="${(cx + (rng.next() - 0.5) * bw * 0.85).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.8).toFixed(1)}" r="${(0.6 + rng.next() * 0.9).toFixed(1)}" fill="rgba(40,30,16,0.5)"/>`
+            );
+          }
+          if (rng.next() < 0.6) {
+            p.push(
+              `<ellipse cx="${(cx + (rng.next() - 0.5) * bw * 0.5).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.5).toFixed(1)}" rx="${(2.4 * fade).toFixed(1)}" ry="${(1.5 * fade).toFixed(1)}" fill="${rng.pick(o.tones)}" stroke="${JOINT}" stroke-width="0.7"/>`
+            );
+          }
+          continue;
+        }
+        if (variant === 'hole') {
+          // trou creusé par le temps : lèvre basse qui accroche la lumière
+          p.push(
+            `<line x1="${ins[3][0].toFixed(1)}" y1="${(ins[3][1] - 1).toFixed(1)}" x2="${ins[2][0].toFixed(1)}" y2="${(ins[2][1] - 1).toFixed(1)}" stroke="rgba(255,240,208,0.10)" stroke-width="${(1.6 * fade).toFixed(1)}"/>`
+          );
+          p.push(
+            `<ellipse cx="${(ins[2][0] - bw * 0.2).toFixed(1)}" cy="${(ins[2][1] - 1).toFixed(1)}" rx="${(2.2 * fade).toFixed(1)}" ry="${(1.4 * fade).toFixed(1)}" fill="${rng.pick(o.tones)}" stroke="${JOINT}" stroke-width="0.7"/>`
+          );
+          continue;
+        }
+
         const roll = rng.next();
         if (T.ink && o.relief !== false) {
           // ombrage façon encrage : hachures dans l'ombre de la pierre
@@ -350,6 +432,20 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
             `<path d="M${(cx - bw * 0.2).toFixed(1)} ${(cy - bh * 0.1).toFixed(1)} l${(rng.next() * 8 - 4).toFixed(1)} ${(rng.next() * 5 + 2).toFixed(1)} l${(rng.next() * 6 - 3).toFixed(1)} ${(rng.next() * 4 - 2).toFixed(1)}" stroke="#4e493c" stroke-width="1.1" fill="none" opacity="0.7"/>`
           );
         }
+        // pointillisme d'encre (croquis de référence) en bordure de pierre
+        if (T.ink && rng.next() < 0.32) {
+          const ex = cx + (rng.next() < 0.5 ? -1 : 1) * bw * 0.3;
+          const ey = cy + (rng.next() < 0.5 ? -1 : 1) * bh * 0.28;
+          for (let i = 0; i < rng.int(4, 8); i++) {
+            p.push(
+              `<circle cx="${(ex + (rng.next() - 0.5) * bw * 0.35).toFixed(1)}" cy="${(ey + (rng.next() - 0.5) * bh * 0.35).toFixed(1)}" r="${(0.5 + rng.next() * 0.7).toFixed(1)}" fill="rgba(36,28,16,0.45)"/>`
+            );
+          }
+        }
+        // mousse en relief posée sur l'arête supérieure de certaines pierres
+        if (T.mossCaps && o.capMoss && rng.next() < 0.16) {
+          p.push(mossCap(ins[0], ins[1], bh, fade));
+        }
       }
     }
   }
@@ -380,6 +476,7 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     bow: 3.6,
     mortar: 1.9,
     strokeW: 1.1,
+    capMoss: true,
   });
   masonry(wallOpts(-1));
   masonry(wallOpts(1));
@@ -395,6 +492,7 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     bow: 4,
     mortar: 1.4,
     strokeW: 0.9,
+    capMoss: true,
   });
   // sol
   masonry({
@@ -407,6 +505,7 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     bow: 3.4,
     mortar: 2.1,
     strokeW: 1.2,
+    terrain: true,
   });
 
   // ═══ Détails : suintements, mousse, éboulis ═══
@@ -474,7 +573,7 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
 
   // ═══ Lumières ═══
   p.push(`<rect width="${W}" height="${H}" fill="${T.dim}" style="mix-blend-mode:multiply"/>`);
-  const shadeOp = T.ink ? 'opacity="0.5" ' : '';
+  const shadeOp = ''; // pénombre pleine dans les deux thèmes (donjon sombre)
   p.push(quad([[0, 0], [W, 0], [FX1, FY0], [FX0, FY0]], 'url(#ceilsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
   p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
   p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
@@ -492,6 +591,28 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     `<ellipse cx="320" cy="${FY1 + 26}" rx="66" ry="15" fill="${T.shaftFloor}" style="mix-blend-mode:screen"/>`
   );
   p.push(`</g>`);
+
+  // lumière extérieure filtrant entre les pierres (thème dessin) :
+  // fentes brillantes au ras des joints + halo + mince faisceau
+  if (T.leaks) {
+    const leaks = [
+      [rng.int(FX0 + 30, FX1 - 60), FY0 + rng.int(12, 46), -14],
+      [rng.int(FX0 + 60, FX1 - 30), FY0 + rng.int(60, 110), 8],
+      [wallX(1, 0.62) - 30, wallY(0.62, 0.16), -24],
+    ];
+    for (const [lx, ly, ang] of leaks) {
+      const len = rng.int(16, 30);
+      p.push(`<g class="fp-leak" style="animation-delay:${(-rng.next() * 13).toFixed(1)}s">`);
+      p.push(`<circle cx="${lx}" cy="${ly}" r="${rng.int(26, 40)}" fill="url(#leakglow)" style="mix-blend-mode:screen"/>`);
+      p.push(
+        `<rect x="${lx - len / 2}" y="${ly - 1.6}" width="${len}" height="3.2" rx="1.6" fill="rgba(255,246,215,0.6)" transform="rotate(${ang} ${lx} ${ly})" style="mix-blend-mode:screen"/>`
+      );
+      p.push(
+        `<polygon points="${lx - len / 2},${ly} ${lx + len / 2},${ly} ${lx + len / 2 + 26},${ly + 130} ${lx - len / 2 - 10},${ly + 124}" fill="url(#shaft)" opacity="0.35" transform="rotate(${Math.round(ang / 3)} ${lx} ${ly})" style="mix-blend-mode:screen"/>`
+      );
+      p.push(`</g>`);
+    }
+  }
 
   // torches murales (gauche profonde, droite proche) : halo vacillant + flamme dansante
   const torchPos = [];
