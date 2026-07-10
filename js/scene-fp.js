@@ -11,8 +11,60 @@
  *
  * Tout est généré par un RNG seedé : même seed → même salle. Léger, aucun
  * asset externe. Les constantes de composition sont regroupées en tête.
+ *
+ * Deux thèmes (même géométrie, même animation) :
+ *  - 'sombre' : réaliste sombre (volumes par dégradés, lumière dramatique) ;
+ *  - 'manga'  : DA dessin animé/manga sépia (référence fournie par Marc) —
+ *    palette ocre « papier », trait encré, ombrage par hachures, touffes
+ *    d'herbe dessinées, lumière plus plate.
  */
-function svgDungeonRoom(seed) {
+const FP_THEMES = {
+  sombre: {
+    bg: '#141310',
+    mortar: '#26231c',
+    joint: '#332f27',
+    wall: ['#847f70', '#8d887a', '#7a7566', '#928d7e', '#807b6c'],
+    mossTones: ['#7d8266', '#747c5e'],
+    ceil: ['#5a564c', '#615d52', '#534f46'],
+    floor: ['#736f5c', '#7b7764', '#6a6654', '#807c69'],
+    mossFill: ['#5b7343', '#4c6238'],
+    ink: false,
+    strokeMul: 1,
+    dim: 'rgba(0,0,0,0.30)',
+    vignEdge: 'rgba(0,0,0,0.74)',
+    shaftRGB: '185,205,250',
+    shaftFloor: 'rgba(178,200,248,0.14)',
+    blotchOp: 0.14,
+    grainOp: 0.16,
+    dustRGB: '255,238,200',
+    mottleDark: 'rgba(30,26,18,0.11)',
+    mottleLight: 'rgba(255,248,230,0.06)',
+  },
+  manga: {
+    bg: '#8f7a52',
+    mortar: '#6b5939',
+    joint: '#4a3a26',
+    wall: ['#d9cba6', '#d1c199', '#c6b58c', '#e0d4b4', '#cbbc94'],
+    mossTones: ['#aaa46e', '#9b9762'],
+    ceil: ['#b7a87f', '#ab9d76', '#a2946e'],
+    floor: ['#c9ba90', '#c1b287', '#b8a97e', '#d1c39a'],
+    mossFill: ['#8e8a52', '#7d7a46'],
+    ink: true,
+    strokeMul: 1.6,
+    dim: 'rgba(58,44,24,0.12)',
+    vignEdge: 'rgba(58,42,22,0.5)',
+    shaftRGB: '252,242,210',
+    shaftFloor: 'rgba(250,240,206,0.16)',
+    blotchOp: 0.09,
+    grainOp: 0.12,
+    dustRGB: '255,246,216',
+    mottleDark: 'rgba(74,58,34,0.10)',
+    mottleLight: 'rgba(255,252,236,0.10)',
+  },
+};
+
+function svgDungeonRoom(seed, styleKey = 'sombre') {
+  const T = FP_THEMES[styleKey] || FP_THEMES.sombre;
   const rng = new RNG(`fp/${seed}`);
 
   // ——— Géométrie de la pièce (perspective à 1 point de fuite) ———
@@ -68,13 +120,43 @@ function svgDungeonRoom(seed) {
     return d + 'Z';
   };
 
-  // ——— Palettes ———
-  const wallTones = ['#847f70', '#8d887a', '#7a7566', '#928d7e', '#807b6c'];
-  const wallMossT = ['#7d8266', '#747c5e'];
-  const ceilTones = ['#5a564c', '#615d52', '#534f46'];
-  const floorTones = ['#736f5c', '#7b7764', '#6a6654', '#807c69'];
-  const JOINT = '#332f27';
-  const MORTAR = '#26231c';
+  // ——— Palettes (par thème) ———
+  const wallTones = T.wall;
+  const wallMossT = T.mossTones;
+  const ceilTones = T.ceil;
+  const floorTones = T.floor;
+  const JOINT = T.joint;
+  const MORTAR = T.mortar;
+
+  /** Hachures d'encrage (thème manga) : petits traits parallèles. */
+  const hatch = (cx, cy, bw, bh, fade, dy) => {
+    const n = rng.int(2, 4);
+    const ang = -0.55 + (rng.next() - 0.5) * 0.5;
+    const len = Math.min(bw, bh) * (0.4 + rng.next() * 0.25);
+    let s = '';
+    for (let i = 0; i < n; i++) {
+      const ox = cx + (rng.next() - 0.5) * bw * 0.3 + i * 2.6 * fade;
+      const oy = cy + dy * bh + i * 2.3 * fade;
+      s +=
+        `<line x1="${(ox - (Math.cos(ang) * len) / 2).toFixed(1)}" y1="${(oy - (Math.sin(ang) * len) / 2).toFixed(1)}" ` +
+        `x2="${(ox + (Math.cos(ang) * len) / 2).toFixed(1)}" y2="${(oy + (Math.sin(ang) * len) / 2).toFixed(1)}" ` +
+        `stroke="rgba(74,58,38,0.30)" stroke-width="${(1.1 * fade).toFixed(1)}" stroke-linecap="round"/>`;
+    }
+    return s;
+  };
+
+  /** Touffe d'herbe dessinée (thème manga, comme la référence). */
+  const tuft = (x, y, s, color) => {
+    let d = '';
+    const n = rng.int(4, 7);
+    for (let i = 0; i < n; i++) {
+      const dx = (i - n / 2) * 2.3 * s;
+      const h = (6 + rng.next() * 6) * s;
+      const bend = (rng.next() - 0.5) * 5 * s;
+      d += `M${(x + dx).toFixed(1)} ${y.toFixed(1)} q ${bend.toFixed(1)} ${(-h * 0.6).toFixed(1)} ${(bend * 1.5).toFixed(1)} ${(-h).toFixed(1)}`;
+    }
+    return `<path d="${d}" stroke="${color}" stroke-width="${(1.3 * s).toFixed(1)}" fill="none" stroke-linecap="round"/>`;
+  };
 
   const p = [];
 
@@ -127,9 +209,9 @@ function svgDungeonRoom(seed) {
       `<stop offset="1" stop-color="rgba(8,6,3,0)"/></radialGradient>` +
       `<radialGradient id="vign" cx="0.5" cy="0.52" r="0.74">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="0.6" stop-color="rgba(0,0,0,0.06)"/>` +
-      `<stop offset="1" stop-color="rgba(0,0,0,0.74)"/></radialGradient>` +
+      `<stop offset="1" stop-color="${T.vignEdge}"/></radialGradient>` +
       `<linearGradient id="shaft" x1="0" y1="0" x2="0.2" y2="1">` +
-      `<stop offset="0" stop-color="rgba(185,205,250,0.4)"/><stop offset="1" stop-color="rgba(185,205,250,0)"/></linearGradient>` +
+      `<stop offset="0" stop-color="rgba(${T.shaftRGB},0.4)"/><stop offset="1" stop-color="rgba(${T.shaftRGB},0)"/></linearGradient>` +
       `<linearGradient id="ceilsh" x1="0" y1="0" x2="0" y2="1">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0.6)"/><stop offset="1" stop-color="rgba(0,0,0,0.12)"/></linearGradient>` +
       `<linearGradient id="lsh" x1="0" y1="0" x2="1" y2="0">` +
@@ -147,7 +229,7 @@ function svgDungeonRoom(seed) {
       `</defs>`
   );
 
-  p.push(`<rect width="${W}" height="${H}" fill="#141310"/>`);
+  p.push(`<rect width="${W}" height="${H}" fill="${T.bg}"/>`);
 
   /**
    * Maçonnerie naturelle générique.
@@ -203,7 +285,7 @@ function svgDungeonRoom(seed) {
         const mossy = o.mossProb && rng.next() < o.mossProb(vb[j]);
         const tone = mossy ? rng.pick(wallMossT) : rng.pick(o.tones);
         p.push(
-          `<path d="${stonePath(ins, o.bow * fade)}" fill="${tone}" stroke="${JOINT}" stroke-width="${(o.strokeW * (0.5 + 0.5 * fade)).toFixed(1)}"/>`
+          `<path d="${stonePath(ins, o.bow * fade)}" fill="${tone}" stroke="${JOINT}" stroke-width="${(o.strokeW * T.strokeMul * (0.5 + 0.5 * fade)).toFixed(1)}"/>`
         );
 
         // ——— relief : bombée / creuse / plate ———
@@ -213,7 +295,21 @@ function svgDungeonRoom(seed) {
         const bh = (Math.abs(ins[3][1] - ins[0][1]) + Math.abs(ins[2][1] - ins[1][1])) / 2 || 6;
         const rot = `rotate(${rng.int(-14, 14)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
         const roll = rng.next();
-        if (o.relief !== false) {
+        if (T.ink && o.relief !== false) {
+          // ombrage façon encrage : hachures dans l'ombre de la pierre
+          if (roll < 0.45) {
+            p.push(hatch(cx, cy, bw, bh, fade, 0.14)); // ombre basse
+          } else if (roll < 0.62) {
+            p.push(hatch(cx, cy, bw, bh, fade, -0.05)); // pierre creuse
+            p.push(hatch(cx, cy, bw, bh, fade, 0.2));
+          }
+          // trait d'encre renforcé sous certaines pierres
+          if (rng.next() < 0.4) {
+            p.push(
+              `<line x1="${ins[3][0].toFixed(1)}" y1="${(ins[3][1] - 0.8).toFixed(1)}" x2="${ins[2][0].toFixed(1)}" y2="${(ins[2][1] - 0.8).toFixed(1)}" stroke="rgba(74,58,38,0.45)" stroke-width="${(1.8 * fade).toFixed(1)}"/>`
+            );
+          }
+        } else if (o.relief !== false) {
           if (roll < 0.4) {
             // bombée : bosse claire décentrée vers le haut + ombre sous l'arête basse
             p.push(
@@ -241,7 +337,7 @@ function svgDungeonRoom(seed) {
         if (rng.next() < 0.45) {
           const dark = rng.next() < 0.6;
           p.push(
-            `<ellipse cx="${(cx + (rng.next() - 0.5) * bw * 0.5).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.5).toFixed(1)}" rx="${(bw * (0.12 + rng.next() * 0.16)).toFixed(1)}" ry="${(bh * (0.1 + rng.next() * 0.14)).toFixed(1)}" fill="${dark ? 'rgba(30,26,18,0.11)' : 'rgba(255,248,230,0.06)'}" transform="${rot}"/>`
+            `<ellipse cx="${(cx + (rng.next() - 0.5) * bw * 0.5).toFixed(1)}" cy="${(cy + (rng.next() - 0.5) * bh * 0.5).toFixed(1)}" rx="${(bw * (0.12 + rng.next() * 0.16)).toFixed(1)}" ry="${(bh * (0.1 + rng.next() * 0.14)).toFixed(1)}" fill="${dark ? T.mottleDark : T.mottleLight}" transform="${rot}"/>`
           );
         }
         if (rng.next() < 0.5) {
@@ -330,8 +426,26 @@ function svgDungeonRoom(seed) {
     const x = wallX(side, u) + (side < 0 ? rng.int(2, 18) : -rng.int(2, 18));
     const y = floorY(u) - rng.int(0, 5);
     const s = 1 - 0.55 * u;
-    p.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(14 * s).toFixed(1)}" ry="${(5.5 * s).toFixed(1)}" fill="#5b7343" opacity="0.75"/>`);
-    p.push(`<ellipse cx="${(x + 6 * s).toFixed(1)}" cy="${(y - 3 * s).toFixed(1)}" rx="${(8 * s).toFixed(1)}" ry="${(3.5 * s).toFixed(1)}" fill="#4c6238" opacity="0.8"/>`);
+    if (T.ink) {
+      // touffes d'herbe dessinées (comme la référence manga)
+      p.push(tuft(x, y, s, T.mossFill[0]));
+      if (rng.next() < 0.6) p.push(tuft(x + 9 * s, y + 2, s * 0.7, T.mossFill[1]));
+    } else {
+      p.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(14 * s).toFixed(1)}" ry="${(5.5 * s).toFixed(1)}" fill="${T.mossFill[0]}" opacity="0.75"/>`);
+      p.push(`<ellipse cx="${(x + 6 * s).toFixed(1)}" cy="${(y - 3 * s).toFixed(1)}" rx="${(8 * s).toFixed(1)}" ry="${(3.5 * s).toFixed(1)}" fill="${T.mossFill[1]}" opacity="0.8"/>`);
+    }
+  }
+  if (T.ink) {
+    // herbes entre les dalles du sol (bien présentes, comme la référence)
+    for (let i = 0; i < 16; i++) {
+      const u = persp(0.05 + rng.next() * 0.75);
+      const c = rng.next();
+      const s = (1 - 0.55 * u) * 1.25;
+      const x = floorX(u, c);
+      const y = floorY(u);
+      p.push(tuft(x, y, s, rng.pick(T.mossFill)));
+      if (rng.next() < 0.5) p.push(tuft(x + 10 * s, y + 3, s * 0.65, rng.pick(T.mossFill)));
+    }
   }
   for (let i = 0; i < 9; i++) {
     const u = persp(0.06 + rng.next() * 0.8);
@@ -355,14 +469,15 @@ function svgDungeonRoom(seed) {
   }
 
   // ═══ Texture : taches de pierre (basse fréquence) + grain fin ═══
-  p.push(`<rect width="${W}" height="${H}" filter="url(#blotch)" opacity="0.14" style="mix-blend-mode:multiply"/>`);
-  p.push(`<rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.16" style="mix-blend-mode:overlay"/>`);
+  p.push(`<rect width="${W}" height="${H}" filter="url(#blotch)" opacity="${T.blotchOp}" style="mix-blend-mode:multiply"/>`);
+  p.push(`<rect width="${W}" height="${H}" filter="url(#grain)" opacity="${T.grainOp}" style="mix-blend-mode:overlay"/>`);
 
   // ═══ Lumières ═══
-  p.push(`<rect width="${W}" height="${H}" fill="rgba(0,0,0,0.30)" style="mix-blend-mode:multiply"/>`);
-  p.push(quad([[0, 0], [W, 0], [FX1, FY0], [FX0, FY0]], 'url(#ceilsh)', 'style="mix-blend-mode:multiply"'));
-  p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', 'style="mix-blend-mode:multiply"'));
-  p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', 'style="mix-blend-mode:multiply"'));
+  p.push(`<rect width="${W}" height="${H}" fill="${T.dim}" style="mix-blend-mode:multiply"/>`);
+  const shadeOp = T.ink ? 'opacity="0.5" ' : '';
+  p.push(quad([[0, 0], [W, 0], [FX1, FY0], [FX0, FY0]], 'url(#ceilsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
+  p.push(quad([[0, 0], [FX0, FY0], [FX0, FY1], [0, H]], 'url(#lsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
+  p.push(quad([[W, 0], [FX1, FY0], [FX1, FY1], [W, H]], 'url(#rsh)', `${shadeOp}style="mix-blend-mode:multiply"`));
 
   // rai de lumière froide tombant d'une faille du plafond ; le groupe entier
   // (rai + flaque au sol) subit les passages d'ombre venus de l'extérieur
@@ -374,7 +489,7 @@ function svgDungeonRoom(seed) {
     `<polygon points="288,${FY0 + 52} 348,${FY0 + 74} 338,${FY1 + 26} 300,${FY1 + 18}" fill="url(#shaft)" style="mix-blend-mode:screen" opacity="0.35"/>`
   );
   p.push(
-    `<ellipse cx="320" cy="${FY1 + 26}" rx="66" ry="15" fill="rgba(178,200,248,0.14)" style="mix-blend-mode:screen"/>`
+    `<ellipse cx="320" cy="${FY1 + 26}" rx="66" ry="15" fill="${T.shaftFloor}" style="mix-blend-mode:screen"/>`
   );
   p.push(`</g>`);
 
@@ -441,7 +556,7 @@ function svgDungeonRoom(seed) {
       const fdur = (5 + rng.next() * 6).toFixed(1);
       p.push(
         `<g class="fp-dust" style="animation:${drift} ${dur}s ease-in-out ${(-rng.next() * 10).toFixed(1)}s infinite alternate">` +
-          `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="rgba(255,238,200,${alpha.toFixed(2)})" ` +
+          `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="rgba(${T.dustRGB},${alpha.toFixed(2)})" ` +
           `style="animation:fpFade ${fdur}s ease-in-out ${(-rng.next() * 8).toFixed(1)}s infinite"/></g>`
       );
     }
@@ -453,4 +568,4 @@ function svgDungeonRoom(seed) {
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">${p.join('')}</svg>`;
 }
 
-if (typeof module !== 'undefined') module.exports = { svgDungeonRoom };
+if (typeof module !== 'undefined') module.exports = { svgDungeonRoom, FP_THEMES };

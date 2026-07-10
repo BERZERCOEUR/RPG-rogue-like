@@ -55,23 +55,34 @@
   <div id="hud">
     <label for="seed">Seed</label>
     <input id="seed" type="text" spellcheck="false" value="salle-1" />
+    <select id="style">
+      <option value="sombre">Réaliste sombre</option>
+      <option value="manga">Manga sépia</option>
+    </select>
     <button id="regen">Régénérer</button>
-    <span class="hint">R = variation aléatoire</span>
+    <span class="hint">R = variation aléatoire · S = changer de style</span>
   </div>
   <script src="js/rng.js"></script>
   <script src="js/scene-fp.js"></script>
   <script>
     const stage = document.getElementById('stage');
     const seedInput = document.getElementById('seed');
+    const styleSel = document.getElementById('style');
     let n = 1;
     function render(seed) {
       seedInput.value = seed;
-      stage.innerHTML = svgDungeonRoom(seed);
+      stage.innerHTML = svgDungeonRoom(seed, styleSel.value);
     }
     document.getElementById('regen').addEventListener('click', () => render(seedInput.value.trim() || 'salle-1'));
+    styleSel.addEventListener('change', () => render(seedInput.value.trim() || 'salle-1'));
     seedInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(seedInput.value.trim()); });
     document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'r' && document.activeElement !== seedInput) render(`salle-${++n}`);
+      if (document.activeElement === seedInput) return;
+      if (e.key.toLowerCase() === 'r') render(`salle-${++n}`);
+      if (e.key.toLowerCase() === 's') {
+        styleSel.value = styleSel.value === 'sombre' ? 'manga' : 'sombre';
+        render(seedInput.value.trim() || 'salle-1');
+      }
     });
     render('salle-1');
   </script>
