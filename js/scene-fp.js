@@ -67,6 +67,35 @@ const FP_THEMES = {
     mottleDark: 'rgba(50,38,20,0.13)',
     mottleLight: 'rgba(255,252,236,0.09)',
   },
+  aquarelle: {
+    // « la plus réaliste possible, couleur aquarelle » : lavis translucides,
+    // pigment accumulé aux bords, contours tremblés (displacement), auréoles
+    // humides, granulation — pénombre de donjon conservée.
+    bg: '#2e2c27',
+    mortar: '#3d3a32',
+    joint: 'rgba(44,47,50,0.42)',
+    wall: ['#9aa0a4', '#a8a396', '#8e968f', '#a49a88', '#8b929c', '#9ca894'],
+    mossTones: ['#84927a', '#78876b'],
+    ceil: ['#6f767e', '#787c74', '#666d76'],
+    floor: ['#8d8878', '#948e7c', '#828073', '#9a927e', '#84887c'],
+    earth: ['#8a7658', '#7d6a4e', '#957f60'],
+    mossFill: ['#6d8250', '#586e42'],
+    ink: false,
+    wc: true,
+    strokeMul: 2.1,
+    jitterMul: 1.15,
+    terrain: true,
+    leaks: true,
+    dim: 'rgba(12,12,14,0.40)',
+    vignEdge: 'rgba(16,15,13,0.80)',
+    shaftRGB: '205,216,238',
+    shaftFloor: 'rgba(200,212,232,0.16)',
+    blotchOp: 0.10,
+    grainOp: 0.22,
+    dustRGB: '255,244,214',
+    mottleDark: 'rgba(60,64,58,0.14)',
+    mottleLight: 'rgba(255,255,250,0.10)',
+  },
 };
 
 function svgDungeonRoom(seed, styleKey = 'sombre') {
@@ -253,6 +282,15 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
       `<stop offset="1" stop-color="rgba(8,6,3,0)"/></radialGradient>` +
       `<radialGradient id="leakglow"><stop offset="0" stop-color="rgba(255,246,214,0.4)"/>` +
       `<stop offset="1" stop-color="rgba(255,246,214,0)"/></radialGradient>` +
+      `<radialGradient id="wash"><stop offset="0" stop-color="rgba(255,255,252,0.20)"/>` +
+      `<stop offset="0.62" stop-color="rgba(255,255,252,0.04)"/>` +
+      `<stop offset="0.88" stop-color="rgba(52,56,62,0.05)"/>` +
+      `<stop offset="1" stop-color="rgba(52,56,62,0.13)"/></radialGradient>` +
+      `<filter id="soft" x="-60%" y="-60%" width="220%" height="220%">` +
+      `<feGaussianBlur stdDeviation="5.5"/></filter>` +
+      `<filter id="wc" x="-4%" y="-4%" width="108%" height="108%">` +
+      `<feTurbulence type="fractalNoise" baseFrequency="0.013 0.017" numOctaves="3" seed="11" result="t"/>` +
+      `<feDisplacementMap in="SourceGraphic" in2="t" scale="9" xChannelSelector="R" yChannelSelector="G"/></filter>` +
       `<radialGradient id="vign" cx="0.5" cy="0.52" r="0.74">` +
       `<stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="0.6" stop-color="rgba(0,0,0,0.06)"/>` +
       `<stop offset="1" stop-color="${T.vignEdge}"/></radialGradient>` +
@@ -351,6 +389,13 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
         const bh = (Math.abs(ins[3][1] - ins[0][1]) + Math.abs(ins[2][1] - ins[1][1])) / 2 || 6;
         const rot = `rotate(${rng.int(-14, 14)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
 
+        // lavis aquarelle : centre lumineux, pigment accumulé vers les bords
+        if (T.wc) {
+          p.push(
+            `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${(bw * 0.58).toFixed(1)}" ry="${(bh * 0.58).toFixed(1)}" fill="url(#wash)" transform="${rot}"/>`
+          );
+        }
+
         if (variant === 'earth') {
           // terre battue : criblée de points d'encre et de cailloutis
           for (let i = 0; i < rng.int(6, 10); i++) {
@@ -445,12 +490,24 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
         // mousse en relief posée sur l'arête supérieure de certaines pierres
         if (T.mossCaps && o.capMoss && rng.next() < 0.16) {
           p.push(mossCap(ins[0], ins[1], bh, fade));
+        } else if (T.wc && o.capMoss && rng.next() < 0.15) {
+          // aquarelle : coussins de mousse humides (lavis verts superposés)
+          const mx = (ins[0][0] + ins[1][0]) / 2;
+          const my = (ins[0][1] + ins[1][1]) / 2;
+          p.push(
+            `<ellipse cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${(bw * 0.42).toFixed(1)}" ry="${(bh * 0.26).toFixed(1)}" fill="${T.mossFill[0]}" opacity="0.5" filter="url(#soft)"/>`
+          );
+          p.push(
+            `<ellipse cx="${(mx + bw * 0.12).toFixed(1)}" cy="${(my + 1.5).toFixed(1)}" rx="${(bw * 0.24).toFixed(1)}" ry="${(bh * 0.15).toFixed(1)}" fill="${T.mossFill[1]}" opacity="0.55" filter="url(#soft)"/>`
+          );
         }
       }
     }
   }
 
   // ═══ Les cinq surfaces ═══
+  // (en aquarelle : contours tremblés par déplacement — coup de pinceau)
+  if (T.wc) p.push(`<g filter="url(#wc)">`);
   // plafond (sombre, discret)
   masonry({
     rows: 4,
@@ -565,6 +622,31 @@ function svgDungeonRoom(seed, styleKey = 'sombre') {
     p.push(
       `<line x1="${pts[0][0].toFixed(1)}" y1="${pts[0][1].toFixed(1)}" x2="${pts[1][0].toFixed(1)}" y2="${pts[1][1].toFixed(1)}" stroke="rgba(255,240,200,0.16)" stroke-width="1.4"/>`
     );
+  }
+
+  if (T.wc) p.push(`</g>`);
+
+  // ═══ Auréoles humides (aquarelle) : lavis larges et flous ═══
+  if (T.wc) {
+    const blooms = ['rgba(96,116,96,0.15)', 'rgba(112,98,74,0.13)', 'rgba(84,96,118,0.13)'];
+    for (let i = 0; i < 7; i++) {
+      const zone = rng.next();
+      let bx;
+      let by;
+      if (zone < 0.4) {
+        bx = rng.int(FX0, FX1);
+        by = rng.int(FY0, FY1);
+      } else if (zone < 0.7) {
+        bx = rng.int(0, FX0);
+        by = rng.int(80, 560);
+      } else {
+        bx = rng.int(FX1, W);
+        by = rng.int(80, 560);
+      }
+      p.push(
+        `<ellipse cx="${bx}" cy="${by}" rx="${rng.int(55, 130)}" ry="${rng.int(35, 85)}" fill="${rng.pick(blooms)}" filter="url(#soft)" style="mix-blend-mode:multiply"/>`
+      );
+    }
   }
 
   // ═══ Texture : taches de pierre (basse fréquence) + grain fin ═══

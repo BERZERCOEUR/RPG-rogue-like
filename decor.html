@@ -58,6 +58,7 @@
     <select id="style">
       <option value="sombre">Réaliste sombre</option>
       <option value="manga">Manga sépia</option>
+      <option value="aquarelle">Aquarelle réaliste</option>
     </select>
     <button id="regen">Régénérer</button>
     <span class="hint">R = variation aléatoire · S = changer de style</span>
@@ -80,7 +81,8 @@
       if (document.activeElement === seedInput) return;
       if (e.key.toLowerCase() === 'r') render(`salle-${++n}`);
       if (e.key.toLowerCase() === 's') {
-        styleSel.value = styleSel.value === 'sombre' ? 'manga' : 'sombre';
+        const styles = ['sombre', 'manga', 'aquarelle'];
+        styleSel.value = styles[(styles.indexOf(styleSel.value) + 1) % styles.length];
         render(seedInput.value.trim() || 'salle-1');
       }
     });

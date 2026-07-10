@@ -103,12 +103,16 @@ le travail porte d'abord sur **l'arrière-plan**, qui servira de base ensuite.
   seedé (`mix-blend-mode` screen/multiply pour la lumière).
 - `decor.html` — visionneuse plein écran : seed + « R » pour des variations,
   « S » (ou le sélecteur) pour changer de thème.
-- **Deux thèmes** (`FP_THEMES`, même géométrie et mêmes animations) :
+- **Trois thèmes** (`FP_THEMES`, même géométrie et mêmes animations) :
   `sombre` — réaliste sombre (volumes par dégradés bombé/creux, lumière
-  dramatique) ; `manga` — DA dessin animé/manga sépia d'après la référence
-  fournie par Marc (palette ocre « papier », trait encré épais, ombrage par
-  hachures, touffes d'herbe dessinées entre les dalles, lumière plate et
-  chaude). Le jeu utilise `sombre` par défaut en attendant le choix de Marc.
+  dramatique) ; `manga` — DA dessin/manga sépia assombrie d'après les
+  références de Marc (trait encré, hachures, pointillisme, mousse en relief
+  festonnée, sol pierre/terre avec trous, infiltrations de lumière entre les
+  pierres) ; `aquarelle` — le plus réaliste, couleur aquarelle (lavis
+  translucides par pierre, teintes variées gris bleuté/ocre/sauge, contours
+  tremblés par filtre de déplacement, auréoles humides floues, granulation,
+  coussins de mousse en lavis). Le jeu utilise `sombre` par défaut en
+  attendant le choix de Marc.
 - Dans le jeu : entrer sur une salle monstre affiche ce décor (seed dérivée
   de l'étage et de la salle → chaque salle a sa variation) ; **TEMPORAIRE :**
   cliquer le décor ressort et marque la salle vaincue, en attendant la
